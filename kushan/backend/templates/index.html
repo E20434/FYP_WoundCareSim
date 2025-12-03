@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Week1 RAG + STT/TTS Demo</title>
+</head>
+<body>
+  <h2>Week1 Backend Demo</h2>
+
+  <label>Scenario ID: <input id="scenario_id" value="demo_001" /></label><br><br>
+
+  <form id="textForm">
+    <textarea id="userText" rows="3" cols="60" placeholder="Type text or question here..."></textarea><br>
+    <button type="submit">Send Text</button>
+  </form>
+
+  <hr>
+
+  <form id="audioForm">
+    <input type="file" id="audioFile" accept="audio/*" />
+    <button type="submit">Upload Audio</button>
+  </form>
+
+  <h3>Response</h3>
+  <pre id="responseText"></pre>
+  <audio id="audioPlayer" controls></audio>
+
+  <script src="/static/client.js"></script>
+</body>
+</html>

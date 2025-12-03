@@ -1,0 +1,4 @@
+The patient is a 42-year-old male who had a left forearm surgical procedure yesterday.	{"scenario_id": "demo_001", "step": "history_taking", "chunk_index": 0}
+The wound appears clean, there is mild pain but no fever or purulent discharge.	{"scenario_id": "demo_001", "step": "history_taking", "chunk_index": 1}
+Doctor prescribed cleaning with surgical spirit and applying a dry dressing.	{"scenario_id": "demo_001", "step": "history_taking", "chunk_index": 2}
+No known drug allergies.	{"scenario_id": "demo_001", "step": "history_taking", "chunk_index": 3}
