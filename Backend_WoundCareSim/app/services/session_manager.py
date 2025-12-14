@@ -1,4 +1,6 @@
 from app.core.state_machine import Step, next_step
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 class SessionManager:
     """
