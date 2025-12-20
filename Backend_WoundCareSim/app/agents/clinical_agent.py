@@ -1,80 +1,74 @@
-from typing import Dict, Any, List
-from app.agents.agent_base import AgentBase
-from app.utils.schema import EvaluatorOutput
+from app.agents.agent_base import BaseAgent
 
-class ClinicalAgent(AgentBase):
-    name = "clinical"
+
+class ClinicalAgent(BaseAgent):
+    """
+    Evaluates the student's clinical and procedural correctness.
+    Focuses on cleaning and dressing steps, with minimal involvement elsewhere.
+    """
 
     def __init__(self):
         super().__init__()
 
-    async def evaluate(self, context: Dict[str, Any]) -> EvaluatorOutput:
+    async def evaluate(
+        self,
+        *,
+        current_step: str,
+        student_input: str,
+        scenario_metadata: dict,
+        rag_response: str,
+    ) -> str:
         """
-        Dummy clinical evaluator:
-        - Accepts `actions` list describing tool usage and sequence.
-        - Example actions format:
-            [
-              {"time": 12345, "action": "wash_hands"},
-              {"time": 12346, "action": "don_gloves"},
-              {"time": 12350, "action": "clean_wound"}
-            ]
-        - Checks presence/sequence of key actions (hand hygiene -> gloves -> wound cleaning -> dressing)
+        Evaluate clinical and procedural correctness based on student input.
+        Returns structured natural-language feedback.
         """
-        step = context.get("step", "unknown")
-        actions: List[Dict[str, Any]] = context.get("actions", [])
 
-        action_names = [a.get("action", "") for a in actions]
-        required_sequence = ["wash_hands", "don_gloves", "clean_wound", "apply_dressing"]
+        system_prompt = (
+            "You are a nursing clinical skills evaluator.\n"
+            "Your role is to evaluate ONLY clinical and procedural correctness.\n\n"
+            "Strict Rules:\n"
+            "- Do NOT evaluate communication style or empathy.\n"
+            "- Do NOT evaluate theoretical nursing knowledge.\n"
+            "- Do NOT assume actions that were not explicitly stated.\n"
+            "- Only evaluate actions relevant to the CURRENT STEP.\n"
+            "- Prioritize patient safety above all else.\n"
+        )
 
-        # Check presence
-        present = {act: (act in action_names) for act in required_sequence}
-        # Check order: find indices, ensure increasing
-        idxs = []
-        for act in required_sequence:
-            try:
-                idxs.append(action_names.index(act))
-            except ValueError:
-                idxs.append(None)
+        user_prompt = (
+            f"CURRENT PROCEDURE STEP:\n"
+            f"{current_step}\n\n"
 
-        order_ok = True
-        # if any missing -> order incorrect
-        if any(i is None for i in idxs):
-            order_ok = False
-        else:
-            for earlier, later in zip(idxs, idxs[1:]):
-                if earlier >= later:
-                    order_ok = False
-                    break
+            f"SCENARIO CONTEXT:\n"
+            f"Wound details:\n"
+            f"{scenario_metadata.get('wound_details', 'N/A')}\n\n"
 
-        # compute simple score
-        presence_score = sum(1 for v in present.values() if v) / len(required_sequence)
-        order_score = 1.0 if order_ok else 0.0
+            f"CLINICAL EXPECTATIONS BY STEP:\n"
+            f"- HISTORY: no clinical actions expected\n"
+            f"- ASSESSMENT: conceptual awareness only\n"
+            f"- CLEANING: hand hygiene, aseptic technique, correct cleaning direction\n"
+            f"- DRESSING: appropriate dressing selection, protection, closure\n\n"
 
-        # weight: presence 0.6, order 0.4
-        score = 0.6 * presence_score + 0.4 * order_score
+            f"REFERENCE PROCEDURE CONTEXT:\n"
+            f"{rag_response}\n\n"
 
-        rationale = f"Action presence: {present}. order_ok={order_ok}."
-        suggested = []
-        if not present["wash_hands"]:
-            suggested.append("Perform hand hygiene before procedure.")
-        if not present["don_gloves"]:
-            suggested.append("Don sterile gloves before touching the wound.")
-        if not order_ok:
-            suggested.append("Follow aseptic sequence: hand hygiene -> gloves -> cleaning -> dressing.")
+            f"STUDENT INPUT (described actions or intentions):\n"
+            f"{student_input}\n\n"
 
-        evidence_refs = []
-        return EvaluatorOutput(
-            agent=self.name,
-            step=step,
-            score=round(float(score), 3),
-            rationale=rationale,
-            confidence=round(0.7 + 0.3 * score, 3),
-            evidence_refs=evidence_refs,
-            suggested_actions=suggested,
-            raw={
-                "action_names": action_names,
-                "presence": present,
-                "idxs": idxs,
-                "order_ok": order_ok
-            }
+            f"EVALUATION INSTRUCTIONS:\n"
+            f"Evaluate ONLY the clinical correctness relevant to the CURRENT STEP.\n"
+            f"Do not penalize missing actions from future steps.\n"
+            f"Explicitly flag unsafe or incorrect actions if mentioned.\n\n"
+
+            f"Respond using EXACTLY the following structure:\n"
+            f"1. Correct Clinical Actions Identified:\n"
+            f"2. Clinical Errors or Unsafe Actions:\n"
+            f"3. Why This Matters for Patient Safety:\n"
+            f"4. Step Clinical Appropriateness (Appropriate / Partially Appropriate / Inappropriate):\n"
+            f"5. Confidence (0.0 to 1.0):\n"
+        )
+
+        return await self.run(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2,
         )
