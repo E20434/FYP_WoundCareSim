@@ -2,6 +2,7 @@ from typing import Dict, List, Any
 from app.services.scenario_loader import ScenarioLoader
 from app.rag.retriever import Retriever
 from app.core.coordinator import coordinate
+from app.services.session_manager import SessionManager
 
 
 class EvaluationService:
@@ -12,9 +13,15 @@ class EvaluationService:
     3. Returns structured feedback for session management
     """
     
-    def __init__(self, retriever: Retriever, scenario_loader: ScenarioLoader):
+    def __init__(
+        self,
+        retriever: Retriever,
+        scenario_loader: ScenarioLoader,
+        session_manager: SessionManager
+    ):
         self.retriever = retriever
         self.scenario_loader = scenario_loader
+        self.session_manager = session_manager
 
     async def prepare_agent_context(
         self, 
@@ -199,3 +206,53 @@ class EvaluationService:
         """
         from app.core.coordinator import READINESS_THRESHOLDS
         return READINESS_THRESHOLDS.get(step, 0.6)
+
+    async def process_step_result(
+        self,
+        session_id: str,
+        coordinator_output: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Gatekeeper logic for session progression.
+        """
+
+        session = self.session_manager.get_session(session_id)
+        if not session:
+            raise ValueError("Session not found")
+
+        # Store last evaluation
+        self.session_manager.store_last_evaluation(
+            session_id, coordinator_output
+        )
+
+        # 🚫 Lock if unsafe
+        if coordinator_output.get("blocking_issues"):
+            self.session_manager.lock_current_step(session_id)
+            return {
+                "status": "LOCKED",
+                "current_step": session["current_step"],
+                "reason": "Critical safety issue detected",
+                "feedback": coordinator_output
+            }
+
+        # ❌ Not ready → retry
+        if not coordinator_output.get("ready_for_next_step", False):
+            self.session_manager.increment_attempt(session_id)
+            return {
+                "status": "RETRY",
+                "current_step": session["current_step"],
+                "retry_guidance": coordinator_output.get("retry_guidance", ""),
+                "feedback": coordinator_output
+            }
+
+        # ✅ Ready → advance
+        next_step = self.session_manager.advance_step(session_id)
+        self.session_manager.reset_attempts(session_id)
+
+        return {
+            "status": "ADVANCED",
+            "previous_step": session["current_step"],
+            "current_step": next_step,
+            "feedback": coordinator_output
+        }
+ 
