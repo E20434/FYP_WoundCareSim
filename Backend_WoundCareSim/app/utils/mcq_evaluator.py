@@ -1,11 +1,4 @@
-"""
-MCQ Evaluation Utility
-Validates student MCQ answers against Firestore ground truth.
-Feeds results into Knowledge Agent scoring.
-"""
-
 from typing import Dict, List, Any, Optional
-
 
 class MCQEvaluator:
     """
