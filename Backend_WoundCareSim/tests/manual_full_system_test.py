@@ -28,9 +28,9 @@ async def run_full_system_test():
     - Vector Store RAG
     - Real evaluator agents
     - Scoring & readiness (Week-5)
-    - Retry logic + max-retry lock
+    - Retry logic + max-retry demo
     - Safety override (Week-6)
-    - Dressing blocked after safety violation
+    - Dressing skipped after safety violation
     """
 
     scenario_id = "week6_mock_scenario"
@@ -74,7 +74,7 @@ async def run_full_system_test():
     ]
 
     # =================================================
-    # HISTORY (expected: NOT READY)
+    # HISTORY
     # =================================================
     await run_step(
         step="HISTORY",
@@ -84,17 +84,17 @@ async def run_full_system_test():
             "and explain the wound care procedure?"
         ),
         evaluation_service=evaluation_service,
-        session_manager=session_manager,
+        session_id=session_id,
         agents=agents,
         log=log
     )
 
     # =================================================
-    # ASSESSMENT (retry → max-retry lock demo)
+    # ASSESSMENT (max-retry demo)
     # =================================================
     await run_assessment_with_max_retry(
         evaluation_service,
-        session_manager,
+        session_id,
         agents,
         log
     )
@@ -106,7 +106,7 @@ async def run_full_system_test():
         step="CLEANING",
         transcript="I will clean the wound now without washing my hands.",
         evaluation_service=evaluation_service,
-        session_manager=session_manager,
+        session_id=session_id,
         agents=agents,
         log=log,
         expect_safety_block=True
@@ -123,7 +123,7 @@ async def run_full_system_test():
             step="DRESSING",
             transcript="I will apply a sterile dressing and secure it properly.",
             evaluation_service=evaluation_service,
-            session_manager=session_manager,
+            session_id=session_id,
             agents=agents,
             log=log
         )
@@ -151,7 +151,7 @@ async def run_step(
     step,
     transcript,
     evaluation_service,
-    session_manager,
+    session_id,
     agents,
     log,
     expect_safety_block=False
@@ -178,7 +178,7 @@ async def run_step(
         print(f"{agent.__class__.__name__}: {result.verdict} ({result.confidence})")
 
     aggregated = await evaluation_service.aggregate_evaluations(
-        session_id=session_manager.sessions.keys().__iter__().__next__(),
+        session_id=session_id,
         evaluator_outputs=evaluator_outputs
     )
 
@@ -196,20 +196,17 @@ async def run_step(
 
     if decision.get("safety_blocked"):
         print("!!! SAFETY OVERRIDE ACTIVATED !!!")
-        session_manager.lock_current_step(
-            session_manager.sessions.keys().__iter__().__next__()
-        )
         return True
 
-    if expect_safety_block:
+    if expect_safety_block and not decision.get("safety_blocked"):
         print("⚠ Expected safety block but none occurred")
 
-    return False
+    return decision.get("safety_blocked", False)
 
 
 async def run_assessment_with_max_retry(
     evaluation_service,
-    session_manager,
+    session_id,
     agents,
     log
 ):
@@ -243,7 +240,7 @@ async def run_assessment_with_max_retry(
             print(f"{agent.__class__.__name__}: {result.verdict}")
 
         aggregated = await evaluation_service.aggregate_evaluations(
-            session_id=session_manager.sessions.keys().__iter__().__next__(),
+            session_id=session_id,
             evaluator_outputs=evaluator_outputs,
             student_mcq_answers=wrong_mcq
         )
@@ -259,22 +256,11 @@ async def run_assessment_with_max_retry(
             "timestamp": datetime.utcnow().isoformat()
         })
 
-        if decision["ready_for_next_step"]:
-            session_manager.advance_step(
-                session_manager.sessions.keys().__iter__().__next__()
-            )
+        if decision.get("ready_for_next_step"):
             print("[ADVANCED]")
             return
 
-        session_manager.increment_attempt(
-            session_manager.sessions.keys().__iter__().__next__()
-        )
-
-        if session_manager.get_session(
-            session_manager.sessions.keys().__iter__().__next__()
-        ).get("locked_step"):
-            print("!!! MAX RETRIES REACHED → SESSION LOCKED !!!")
-            return
+    print("!!! MAX RETRY DEMO COMPLETE (NO ADVANCEMENT) !!!")
 
 
 # -------------------------------------------------

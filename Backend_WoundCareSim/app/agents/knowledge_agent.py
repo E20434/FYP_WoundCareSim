@@ -71,7 +71,7 @@ class KnowledgeAgent(BaseAgent):
         except (json.JSONDecodeError, ValueError, ValidationError) as e:
             print(f"Agent Parsing Failed: {e}")
             return EvaluatorResponse(
-                agent_name="CommunicationAgent",
+                agent_name="KnowledgeAgent",
                 step=current_step,
                 strengths=[],
                 issues_detected=["Error parsing evaluator response"],
