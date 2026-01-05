@@ -17,6 +17,9 @@ class EvaluationService:
         self.session_manager = session_manager
         self.mcq_evaluator = MCQEvaluator()
 
+    # ------------------------------------------------
+    # Context preparation (unchanged)
+    # ------------------------------------------------
     async def prepare_agent_context(
         self,
         transcript: str,
@@ -38,6 +41,9 @@ class EvaluationService:
             "rag_context": rag["text"]
         }
 
+    # ------------------------------------------------
+    # Evaluation aggregation (Week-6 aligned)
+    # ------------------------------------------------
     async def aggregate_evaluations(
         self,
         session_id: str,
@@ -46,13 +52,18 @@ class EvaluationService:
     ) -> Dict[str, Any]:
 
         session = self.session_manager.get_session(session_id)
+        if not session:
+            raise ValueError("Session not found")
+
         step = session["current_step"]
 
+        # Coordinator aggregation (Week-5 logic)
         coordinator_output = self.coordinator.aggregate(
             evaluations=evaluator_outputs,
             current_step=step
         )
 
+        # MCQ enrichment (ASSESSMENT only)
         if step == "ASSESSMENT" and student_mcq_answers:
             scenario_meta = load_scenario(session["scenario_id"])
             mcq_result = self.mcq_evaluator.validate_mcq_answers(
@@ -61,8 +72,35 @@ class EvaluationService:
             )
             coordinator_output["mcq_result"] = mcq_result
 
+        # ----------------------------
+        # Explicit decision extraction (NEW)
+        # ----------------------------
+        decision = {
+            "ready_for_next_step": coordinator_output.get(
+                "ready_for_next_step", False
+            ),
+            "safety_blocked": coordinator_output.get(
+                "safety_blocked", False
+            ),
+            "blocking_issues": coordinator_output.get(
+                "blocking_issues", []
+            ),
+            "threshold_used": coordinator_output.get(
+                "threshold_used", None
+            ),
+        }
+
+        # Store evaluation snapshot
         self.session_manager.store_last_evaluation(
-            session_id, coordinator_output
+            session_id,
+            {
+                **coordinator_output,
+                **decision
+            }
         )
 
-        return coordinator_output
+        # Return full evaluation + explicit decision flags
+        return {
+            **coordinator_output,
+            **decision
+        }

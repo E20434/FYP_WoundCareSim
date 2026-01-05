@@ -39,32 +39,6 @@ class EvalInput(BaseModel):
 # Routes
 # ----------------------------
 
-@router.post("/start")
-def start_session(req: StartSessionRequest):
-    try:
-        scenario = load_scenario(req.scenario_id)
-
-        session_id = session_manager.create_session(
-            scenario_id=req.scenario_id,
-            student_id=req.student_id,
-            scenario_metadata=scenario
-        )
-
-        return {
-            "session_id": session_id,
-            "current_step": Step.HISTORY.value,
-            "scenario_summary": {
-                "scenario_id": scenario["scenario_id"],
-                "title": scenario["title"],
-                "patient_history": scenario["patient_history"],
-                "wound_details": scenario["wound_details"],
-            },
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/step")
 async def session_step(payload: EvalInput):
     sid = payload.session_id
@@ -73,9 +47,24 @@ async def session_step(payload: EvalInput):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    cur_step = session["current_step"]
-    scenario_id = session["scenario_id"]
+    # ----------------------------
+    # Step order enforcement
+    # ----------------------------
+    current_step = session["current_step"]
 
+    if payload.step != current_step:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid step order. Current step is '{current_step}'."
+        )
+
+    if session.get("locked"):
+        raise HTTPException(
+            status_code=403,
+            detail="Session is locked due to safety violation."
+        )
+
+    scenario_id = session["scenario_id"]
     rag_result = None
 
     # ----------------------------
@@ -87,7 +76,7 @@ async def session_step(payload: EvalInput):
                 query=payload.user_input,
                 scenario_id=scenario_id,
                 system_instruction=(
-                    f"You are assisting in step '{cur_step}' "
+                    f"You are assisting in step '{current_step}' "
                     "of a surgically clean wound care procedure."
                 ),
             )
@@ -95,22 +84,21 @@ async def session_step(payload: EvalInput):
             session_manager.add_rag_result(
                 sid,
                 {
-                    "step": cur_step,
+                    "step": current_step,
                     "query": payload.user_input,
                     "llm_output": rag_result["text"],
                 },
             )
-
         except Exception as e:
             print(f"RAG retrieval failed: {str(e)}")
 
     # ----------------------------
-    # Evaluation aggregation (Week-4)
+    # Evaluation aggregation
     # ----------------------------
     try:
         evaluation = await evaluation_service.aggregate_evaluations(
             evaluator_outputs=payload.evaluator_outputs,
-            step=cur_step,
+            step=current_step,
         )
     except Exception as e:
         raise HTTPException(
@@ -124,7 +112,7 @@ async def session_step(payload: EvalInput):
     session_manager.add_log(
         sid,
         {
-            "step": cur_step,
+            "step": current_step,
             "user_input": payload.user_input,
             "evaluation": evaluation,
             "rag_used": rag_result is not None,
@@ -132,22 +120,59 @@ async def session_step(payload: EvalInput):
     )
 
     # ----------------------------
-    # Step transition
+    # SAFETY ENFORCEMENT (Week-6)
     # ----------------------------
-    next_s = None
-    try:
-        next_s = next_step(Step(cur_step))
-        session["current_step"] = next_s.value
-    except Exception:
-        pass
+    if evaluation.get("safety_blocked"):
+        session_manager.lock_session(
+            sid,
+            reason="Unsafe clinical action detected"
+        )
+
+        return {
+            "session_id": sid,
+            "current_step": current_step,
+            "locked": True,
+            "evaluation": evaluation,
+            "message": "Session locked due to unsafe clinical action."
+        }
 
     # ----------------------------
-    # Response
+    # READINESS & RETRY ENFORCEMENT
+    # ----------------------------
+    if evaluation.get("ready_for_next_step"):
+        try:
+            next_s = next_step(Step(current_step))
+            session_manager.advance_step(sid, next_s.value)
+        except Exception:
+            next_s = None
+    else:
+        session_manager.increment_attempt(sid)
+
+        if session_manager.exceeded_max_attempts(sid):
+            session_manager.lock_session(
+                sid,
+                reason="Maximum retries exceeded"
+            )
+
+            return {
+                "session_id": sid,
+                "current_step": current_step,
+                "locked": True,
+                "evaluation": evaluation,
+                "message": "Maximum retry attempts exceeded."
+            }
+
+        next_s = None
+
+    # ----------------------------
+    # Response (VR-ready)
     # ----------------------------
     response = {
         "session_id": sid,
-        "current_step": cur_step,
+        "current_step": current_step,
         "evaluation": evaluation,
+        "ready_for_next_step": evaluation.get("ready_for_next_step", False),
+        "locked": session.get("locked", False),
     }
 
     if rag_result:
@@ -157,3 +182,4 @@ async def session_step(payload: EvalInput):
         response["next_step"] = next_s.value
 
     return response
+
