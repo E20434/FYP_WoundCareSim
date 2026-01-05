@@ -1,9 +1,18 @@
 from typing import List, Dict, Any
 from app.utils.schema import EvaluatorResponse
-from app.utils.scoring import aggregate_scores, check_readiness
+from app.utils.scoring import aggregate_scores
 
 
 class Coordinator:
+    """
+    Aggregates evaluator outputs into a unified feedback object.
+
+    IMPORTANT:
+    - This class does NOT control step progression
+    - This class does NOT block or lock sessions
+    - All outputs are informational and feedback-oriented
+    """
+
     def aggregate(
         self,
         evaluations: List[EvaluatorResponse],
@@ -13,22 +22,19 @@ class Coordinator:
         if not evaluations:
             return {
                 "step": current_step,
-                "summary": {},
+                "summary": {
+                    "strengths": [],
+                    "issues_detected": ["No evaluator outputs received"],
+                },
                 "agent_feedback": {},
                 "combined_explanation": "",
                 "scores": {},
-                "decision": {
-                    "ready_for_next_step": False,
-                    "safety_blocked": False,
-                    "blocking_issues": ["No evaluations available"],
-                    "threshold_used": None,
-                },
             }
 
-        agent_feedback = {}
-        strengths = []
-        issues = []
-        explanations = []
+        agent_feedback: Dict[str, Any] = {}
+        strengths: List[str] = []
+        issues: List[str] = []
+        explanations: List[str] = []
 
         for ev in evaluations:
             agent_feedback[ev.agent_name] = {
@@ -39,24 +45,18 @@ class Coordinator:
                 "confidence": ev.confidence,
             }
 
-            strengths.extend([f"[{ev.agent_name}] {s}" for s in ev.strengths])
-            issues.extend([f"[{ev.agent_name}] {i}" for i in ev.issues_detected])
-            explanations.append(f"[{ev.agent_name}] {ev.explanation}")
+            strengths.extend(
+                [f"[{ev.agent_name}] {s}" for s in ev.strengths]
+            )
+            issues.extend(
+                [f"[{ev.agent_name}] {i}" for i in ev.issues_detected]
+            )
+            explanations.append(
+                f"[{ev.agent_name}] {ev.explanation}"
+            )
 
+        # Informational scoring only (no thresholds, no blocking)
         scores = aggregate_scores(evaluations, current_step)
-        readiness = check_readiness(
-            evaluations,
-            current_step,
-            scores["composite_score"]
-        )
-
-        # 🔥 NORMALIZE DECISION KEYS (CRITICAL)
-        decision = {
-            "ready_for_next_step": readiness.get("ready_for_next_step", False),
-            "safety_blocked": readiness.get("safety_blocked", False),
-            "blocking_issues": readiness.get("blocking_issues", []),
-            "threshold_used": readiness.get("threshold_used"),
-        }
 
         return {
             "step": current_step,
@@ -67,5 +67,4 @@ class Coordinator:
             "agent_feedback": agent_feedback,
             "combined_explanation": " ".join(explanations),
             "scores": scores,
-            "decision": decision,
         }

@@ -23,14 +23,12 @@ async def run_full_system_test():
     """
     Manual end-to-end system validation (Week-1 → Week-6).
 
-    Validates:
-    - Firestore scenario loading
-    - Vector Store RAG
-    - Real evaluator agents
-    - Scoring & readiness (Week-5)
-    - Retry logic + max-retry demo
-    - Safety override (Week-6)
-    - Dressing skipped after safety violation
+    EDUCATIONAL MODE:
+    - No blocking
+    - No retries
+    - No safety locks
+    - Student can always continue
+    - Feedback is given AFTER each step
     """
 
     scenario_id = "week6_mock_scenario"
@@ -74,7 +72,7 @@ async def run_full_system_test():
     ]
 
     # =================================================
-    # HISTORY
+    # PROCEDURE STEPS
     # =================================================
     await run_step(
         step="HISTORY",
@@ -89,44 +87,30 @@ async def run_full_system_test():
         log=log
     )
 
-    # =================================================
-    # ASSESSMENT (max-retry demo)
-    # =================================================
-    await run_assessment_with_max_retry(
-        evaluation_service,
-        session_id,
-        agents,
-        log
+    await run_assessment(
+        evaluation_service=evaluation_service,
+        session_id=session_id,
+        agents=agents,
+        log=log
     )
 
-    # =================================================
-    # CLEANING (safety override demo)
-    # =================================================
-    safety_triggered = await run_step(
+    await run_step(
         step="CLEANING",
         transcript="I will clean the wound now without washing my hands.",
         evaluation_service=evaluation_service,
         session_id=session_id,
         agents=agents,
-        log=log,
-        expect_safety_block=True
+        log=log
     )
 
-    # =================================================
-    # DRESSING (must NOT run if safety triggered)
-    # =================================================
-    if safety_triggered:
-        print("\n[DRESSING SKIPPED]")
-        print("Reason: Safety block was correctly enforced.")
-    else:
-        await run_step(
-            step="DRESSING",
-            transcript="I will apply a sterile dressing and secure it properly.",
-            evaluation_service=evaluation_service,
-            session_id=session_id,
-            agents=agents,
-            log=log
-        )
+    await run_step(
+        step="DRESSING",
+        transcript="I will apply a sterile dressing and secure it properly.",
+        evaluation_service=evaluation_service,
+        session_id=session_id,
+        agents=agents,
+        log=log
+    )
 
     # -------------------------------------------------
     # Dump JSON log
@@ -153,11 +137,10 @@ async def run_step(
     evaluation_service,
     session_id,
     agents,
-    log,
-    expect_safety_block=False
+    log
 ):
     print(f"\n================ {step} =================")
-    print(f"[TRANSCRIPT] {transcript}")
+    print(f"[STUDENT INPUT] {transcript}")
 
     context = await evaluation_service.prepare_agent_context(
         transcript=transcript,
@@ -175,92 +158,82 @@ async def run_step(
             rag_response=context["rag_context"]
         )
         evaluator_outputs.append(result)
-        print(f"{agent.__class__.__name__}: {result.verdict} ({result.confidence})")
+        print(f"{result.agent_name}: {result.verdict} ({result.confidence})")
 
     aggregated = await evaluation_service.aggregate_evaluations(
         session_id=session_id,
         evaluator_outputs=evaluator_outputs
     )
 
-    decision = aggregated["decision"]
+    print("\n--- FEEDBACK SUMMARY ---")
+    for s in aggregated["summary"]["strengths"]:
+        print("✔", s)
 
-    print("[DECISION]", decision)
+    for i in aggregated["summary"]["issues_detected"]:
+        print("✖", i)
+
+    print("\n[SCORES]", aggregated.get("scores"))
+    print("[READINESS]", aggregated["decision"]["ready_for_next_step"])
 
     log["steps"].append({
         "step": step,
         "transcript": transcript,
-        "decision": decision,
+        "summary": aggregated["summary"],
         "scores": aggregated.get("scores"),
+        "decision": aggregated["decision"],
         "timestamp": datetime.utcnow().isoformat()
     })
 
-    if decision.get("safety_blocked"):
-        print("!!! SAFETY OVERRIDE ACTIVATED !!!")
-        return True
 
-    if expect_safety_block and not decision.get("safety_blocked"):
-        print("⚠ Expected safety block but none occurred")
-
-    return decision.get("safety_blocked", False)
-
-
-async def run_assessment_with_max_retry(
+async def run_assessment(
     evaluation_service,
     session_id,
     agents,
     log
 ):
-    print("\n================ ASSESSMENT (MAX RETRY DEMO) =================")
+    print("\n================ ASSESSMENT =================")
 
     transcript = "The wound looks fine. I will continue."
-    wrong_mcq = {
+    student_mcq_answers = {
         "q1": "Remove dressing",
         "q2": "Dry dressing"
     }
 
-    for attempt in range(1, 5):
-        print(f"\n[ATTEMPT {attempt}]")
+    context = await evaluation_service.prepare_agent_context(
+        transcript=transcript,
+        scenario_id=log["scenario_id"],
+        step="ASSESSMENT"
+    )
 
-        context = await evaluation_service.prepare_agent_context(
-            transcript=transcript,
-            scenario_id=log["scenario_id"],
-            step="ASSESSMENT"
+    evaluator_outputs = []
+
+    for agent in agents:
+        result = await agent.evaluate(
+            current_step="ASSESSMENT",
+            student_input=context["transcript"],
+            scenario_metadata=context["scenario_metadata"],
+            rag_response=context["rag_context"]
         )
+        evaluator_outputs.append(result)
+        print(f"{result.agent_name}: {result.verdict}")
 
-        evaluator_outputs = []
+    aggregated = await evaluation_service.aggregate_evaluations(
+        session_id=session_id,
+        evaluator_outputs=evaluator_outputs,
+        student_mcq_answers=student_mcq_answers
+    )
 
-        for agent in agents:
-            result = await agent.evaluate(
-                current_step="ASSESSMENT",
-                student_input=context["transcript"],
-                scenario_metadata=context["scenario_metadata"],
-                rag_response=context["rag_context"]
-            )
-            evaluator_outputs.append(result)
-            print(f"{agent.__class__.__name__}: {result.verdict}")
+    print("\n--- MCQ FEEDBACK ---")
+    print(aggregated.get("mcq_result"))
 
-        aggregated = await evaluation_service.aggregate_evaluations(
-            session_id=session_id,
-            evaluator_outputs=evaluator_outputs,
-            student_mcq_answers=wrong_mcq
-        )
-
-        decision = aggregated["decision"]
-
-        print("[DECISION]", decision)
-
-        log["steps"].append({
-            "step": "ASSESSMENT",
-            "attempt": attempt,
-            "decision": decision,
-            "timestamp": datetime.utcnow().isoformat()
-        })
-
-        if decision.get("ready_for_next_step"):
-            print("[ADVANCED]")
-            return
-
-    print("!!! MAX RETRY DEMO COMPLETE (NO ADVANCEMENT) !!!")
+    log["steps"].append({
+        "step": "ASSESSMENT",
+        "transcript": transcript,
+        "mcq_answers": student_mcq_answers,
+        "mcq_result": aggregated.get("mcq_result"),
+        "decision": aggregated["decision"],
+        "timestamp": datetime.utcnow().isoformat()
+    })
 
 
 # -------------------------------------------------

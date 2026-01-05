@@ -2,7 +2,9 @@ from typing import List, Dict
 from app.utils.schema import EvaluatorResponse
 
 
-# ---- Verdict → Base score mapping ----
+# --------------------------------------
+# Verdict → Base score mapping
+# --------------------------------------
 VERDICT_SCORE_MAP = {
     "Appropriate": 1.0,
     "Partially Appropriate": 0.6,
@@ -10,7 +12,9 @@ VERDICT_SCORE_MAP = {
 }
 
 
-# ---- Step-wise agent importance ----
+# --------------------------------------
+# Step-wise agent importance (informational)
+# --------------------------------------
 STEP_WEIGHTS = {
     "HISTORY": {
         "CommunicationAgent": 0.5,
@@ -35,21 +39,16 @@ STEP_WEIGHTS = {
 }
 
 
-# ---- Step readiness thresholds ----
-STEP_THRESHOLD = {
-    "HISTORY": 0.6,
-    "ASSESSMENT": 0.6,
-    "CLEANING": 0.7,
-    "DRESSING": 0.7,
-}
-
-
 def score_single_evaluation(ev: EvaluatorResponse) -> float:
     """
     Convert one evaluator output into a numeric score.
+
+    NOTE:
+    Scores are informational only (feedback, reporting).
+    They do NOT control progression or blocking.
     """
     base_score = VERDICT_SCORE_MAP.get(ev.verdict, 0.0)
-    return base_score * ev.confidence
+    return round(base_score * ev.confidence, 3)
 
 
 def aggregate_scores(
@@ -57,10 +56,16 @@ def aggregate_scores(
     current_step: str
 ) -> Dict[str, float]:
     """
-    Compute per-agent and composite scores.
+    Compute per-agent and composite scores for feedback purposes.
+
+    IMPORTANT:
+    - No thresholds
+    - No readiness decisions
+    - No safety blocking
     """
+
     weights = STEP_WEIGHTS.get(current_step, {})
-    agent_scores = {}
+    agent_scores: Dict[str, float] = {}
     composite_score = 0.0
 
     for ev in evaluations:
@@ -73,45 +78,4 @@ def aggregate_scores(
     return {
         "agent_scores": agent_scores,
         "composite_score": round(composite_score, 3),
-    }
-
-
-def check_readiness(
-    evaluations: List[EvaluatorResponse],
-    current_step: str,
-    composite_score: float
-) -> Dict[str, object]:
-    """
-    Decide whether the system can safely move to the next step.
-    Week-6: includes explicit safety override logic.
-    """
-
-    blocking_issues = []
-    safety_blocked = False
-
-    # ---- SAFETY OVERRIDE (Week-6) ----
-    for ev in evaluations:
-        if (
-            ev.agent_name == "ClinicalAgent"
-            and ev.verdict == "Inappropriate"
-            and current_step in {"CLEANING", "DRESSING"}
-        ):
-            safety_blocked = True
-            blocking_issues.append(
-                "Unsafe clinical action detected during "
-                f"{current_step.lower()} step"
-            )
-
-    threshold = STEP_THRESHOLD.get(current_step, 1.0)
-
-    ready_for_next_step = (
-        composite_score >= threshold
-        and not safety_blocked
-    )
-
-    return {
-        "ready_for_next_step": ready_for_next_step,
-        "safety_blocked": safety_blocked,
-        "blocking_issues": blocking_issues,
-        "threshold_used": threshold,
     }

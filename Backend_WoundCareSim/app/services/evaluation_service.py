@@ -8,6 +8,15 @@ from app.utils.schema import EvaluatorResponse
 
 
 class EvaluationService:
+    """
+    Orchestrates evaluator agents and aggregates feedback.
+
+    IMPORTANT:
+    - This service does NOT block steps
+    - This service does NOT enforce progression
+    - All outputs are feedback-only
+    """
+
     def __init__(
         self,
         coordinator: Coordinator,
@@ -42,7 +51,7 @@ class EvaluationService:
         }
 
     # ------------------------------------------------
-    # Evaluation aggregation (Week-6 FINAL)
+    # Evaluation aggregation (feedback-only)
     # ------------------------------------------------
     async def aggregate_evaluations(
         self,
@@ -58,7 +67,7 @@ class EvaluationService:
         step = session["current_step"]
 
         # ------------------------------------------------
-        # Delegate ALL decision logic to Coordinator
+        # Aggregate evaluator feedback
         # ------------------------------------------------
         coordinator_output = self.coordinator.aggregate(
             evaluations=evaluator_outputs,
@@ -66,7 +75,7 @@ class EvaluationService:
         )
 
         # ------------------------------------------------
-        # MCQ enrichment (ASSESSMENT only)
+        # MCQ enrichment (ASSESSMENT only, formative)
         # ------------------------------------------------
         if step == "ASSESSMENT" and student_mcq_answers:
             scenario_meta = load_scenario(session["scenario_id"])
@@ -77,23 +86,29 @@ class EvaluationService:
             coordinator_output["mcq_result"] = mcq_result
 
         # ------------------------------------------------
-        # IMPORTANT: Do NOT rebuild the decision
+        # Store evaluation snapshot (no decision logic)
         # ------------------------------------------------
-        decision = coordinator_output["decision"]
-
-        # Store evaluation snapshot
         self.session_manager.store_last_evaluation(
             session_id,
             coordinator_output
         )
 
-        # Return exactly what Coordinator decided
+        # ------------------------------------------------
+        # Return feedback-only output
+        # ------------------------------------------------
         return coordinator_output
 
     # ------------------------------------------------
     # Input-type helper (Week-7 prep)
     # ------------------------------------------------
     def determine_input_type(self, payload: Dict[str, Any]) -> str:
+        """
+        Determines whether the incoming payload is
+        text-based or action-based.
+
+        NOTE:
+        Action handling is implemented in Week-7.
+        """
         if "action_type" in payload:
             return "ACTION"
         return "TEXT"
