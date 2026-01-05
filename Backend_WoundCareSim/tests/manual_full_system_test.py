@@ -165,22 +165,27 @@ async def run_step(
         evaluator_outputs=evaluator_outputs
     )
 
+    # -----------------------------
+    # Safe decision handling
+    # -----------------------------
+    decision = aggregated.get("decision", {})
+
     print("\n--- FEEDBACK SUMMARY ---")
-    for s in aggregated["summary"]["strengths"]:
+    for s in aggregated.get("summary", {}).get("strengths", []):
         print("✔", s)
 
-    for i in aggregated["summary"]["issues_detected"]:
+    for i in aggregated.get("summary", {}).get("issues_detected", []):
         print("✖", i)
 
     print("\n[SCORES]", aggregated.get("scores"))
-    print("[READINESS]", aggregated["decision"]["ready_for_next_step"])
+    print("[READINESS]", decision.get("ready_for_next_step", "N/A"))
 
     log["steps"].append({
         "step": step,
         "transcript": transcript,
-        "summary": aggregated["summary"],
+        "summary": aggregated.get("summary"),
         "scores": aggregated.get("scores"),
-        "decision": aggregated["decision"],
+        "decision": decision,
         "timestamp": datetime.utcnow().isoformat()
     })
 
@@ -224,14 +229,14 @@ async def run_assessment(
     )
 
     print("\n--- MCQ FEEDBACK ---")
-    print(aggregated.get("mcq_result"))
+    print(aggregated.get("mcq_result", "No MCQ feedback"))
 
     log["steps"].append({
         "step": "ASSESSMENT",
         "transcript": transcript,
         "mcq_answers": student_mcq_answers,
         "mcq_result": aggregated.get("mcq_result"),
-        "decision": aggregated["decision"],
+        "decision": aggregated.get("decision", {}),
         "timestamp": datetime.utcnow().isoformat()
     })
 

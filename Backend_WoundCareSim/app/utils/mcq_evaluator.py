@@ -1,158 +1,99 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
+
 
 class MCQEvaluator:
     """
-    Handles MCQ validation for Assessment step.
-    Compares student answers with correct answers from Firestore.
+    Educational MCQ evaluator for ASSESSMENT step.
+
+    Principles:
+    - No blocking
+    - No retries
+    - No pass/fail
+    - Always returns feedback
     """
-    
+
     @staticmethod
     def validate_mcq_answers(
         student_answers: Dict[str, str],
-        correct_answers: Dict[str, Any]
+        assessment_questions: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Validates student MCQ responses against ground truth.
-        
-        Args:
-            student_answers: Dict mapping question_id -> selected_option
-                Example: {"q1": "A", "q2": "C"}
-            correct_answers: Dict from Firestore containing:
-                - questions: List of question objects with id, correct_answer
-                
-        Returns:
-            MCQ evaluation result:
-            - total_questions: int
-            - correct_count: int
-            - incorrect_count: int
-            - unanswered_count: int
-            - score: float (0.0-1.0)
-            - per_question_feedback: List of feedback objects
+        Validate MCQ answers against Firestore questions.
+
+        Firestore format (per question):
+        {
+          "id": "q1",
+          "question": "...",
+          "options": [...],
+          "correct_answer": "Wash hands"
+        }
         """
-        questions = correct_answers.get("questions", [])
-        total = len(questions)
-        
-        if total == 0:
+
+        if not assessment_questions:
             return {
                 "total_questions": 0,
                 "correct_count": 0,
-                "incorrect_count": 0,
-                "unanswered_count": 0,
-                "score": 0.0,
-                "per_question_feedback": []
+                "feedback": [],
+                "summary": "No MCQ questions available"
             }
-        
-        correct = 0
-        incorrect = 0
-        unanswered = 0
-        feedback_list = []
-        
-        for question in questions:
-            q_id = question.get("id")
-            correct_option = question.get("correct_answer")
-            question_text = question.get("question", "")
-            options = question.get("options", {})
-            explanation = question.get("explanation", "")
-            
-            student_answer = student_answers.get(q_id)
-            
-            # Check if answered
-            if not student_answer:
-                unanswered += 1
-                feedback_list.append({
-                    "question_id": q_id,
-                    "question_text": question_text,
-                    "correct": False,
-                    "student_answer": None,
-                    "correct_answer": correct_option,
-                    "correct_answer_text": options.get(correct_option, ""),
-                    "feedback": "Question not answered",
-                    "explanation": explanation
-                })
-                continue
-            
-            # Validate answer
-            is_correct = student_answer.upper() == correct_option.upper()
-            
-            if is_correct:
-                correct += 1
-                feedback_list.append({
-                    "question_id": q_id,
-                    "question_text": question_text,
-                    "correct": True,
+
+        feedback = []
+        correct_count = 0
+
+        for q in assessment_questions:
+            qid = q.get("id")
+            question_text = q.get("question", "")
+            correct_answer = q.get("correct_answer")
+
+            student_answer = student_answers.get(qid)
+
+            if student_answer == correct_answer:
+                correct_count += 1
+                feedback.append({
+                    "question_id": qid,
+                    "question": question_text,
+                    "status": "correct",
                     "student_answer": student_answer,
-                    "correct_answer": correct_option,
-                    "student_answer_text": options.get(student_answer, ""),
-                    "feedback": "Correct answer",
-                    "explanation": explanation
+                    "correct_answer": correct_answer,
+                    "explanation": "Correct answer."
                 })
             else:
-                incorrect += 1
-                feedback_list.append({
-                    "question_id": q_id,
-                    "question_text": question_text,
-                    "correct": False,
+                feedback.append({
+                    "question_id": qid,
+                    "question": question_text,
+                    "status": "incorrect",
                     "student_answer": student_answer,
-                    "correct_answer": correct_option,
-                    "student_answer_text": options.get(student_answer, ""),
-                    "correct_answer_text": options.get(correct_option, ""),
-                    "feedback": f"Incorrect. The correct answer is {correct_option}",
-                    "explanation": explanation
+                    "correct_answer": correct_answer,
+                    "explanation": (
+                        f"The correct answer is '{correct_answer}'."
+                        if correct_answer else
+                        "Correct answer not available."
+                    )
                 })
-        
-        # Calculate score
-        score = correct / total if total > 0 else 0.0
-        
+
+        total = len(assessment_questions)
+        score = correct_count / total if total > 0 else 0.0
+
         return {
             "total_questions": total,
-            "correct_count": correct,
-            "incorrect_count": incorrect,
-            "unanswered_count": unanswered,
-            "score": score,
-            "per_question_feedback": feedback_list
+            "correct_count": correct_count,
+            "score": round(score, 2),
+            "feedback": feedback,
+            "summary": f"{correct_count}/{total} correct"
         }
-    
-    @staticmethod
-    def compute_mcq_contribution(mcq_score: float, weight: float = 0.4) -> float:
-        """
-        Computes MCQ contribution to Knowledge Agent score.
-        
-        Args:
-            mcq_score: MCQ validation score (0.0-1.0)
-            weight: How much MCQ affects Knowledge score (default 40%)
-        
-        Returns:
-            Weighted MCQ contribution
-        """
-        return mcq_score * weight
-    
+
+    # -------------------------------------------------
+    # Optional helper (safe to keep for future use)
+    # -------------------------------------------------
     @staticmethod
     def get_mcq_summary(mcq_result: Dict[str, Any]) -> str:
         """
-        Generates human-readable MCQ performance summary.
-        
-        Args:
-            mcq_result: Output from validate_mcq_answers
-        
-        Returns:
-            Summary string
+        Returns a simple human-readable summary.
         """
         total = mcq_result.get("total_questions", 0)
         correct = mcq_result.get("correct_count", 0)
-        score = mcq_result.get("score", 0.0)
-        
+
         if total == 0:
-            return "No MCQ questions available"
-        
-        percentage = score * 100
-        
-        if score >= 0.8:
-            performance = "Excellent"
-        elif score >= 0.6:
-            performance = "Good"
-        elif score >= 0.4:
-            performance = "Fair"
-        else:
-            performance = "Needs improvement"
-        
-        return f"{performance}: {correct}/{total} correct ({percentage:.0f}%)"
+            return "No MCQs available"
+
+        return f"{correct}/{total} questions answered correctly"

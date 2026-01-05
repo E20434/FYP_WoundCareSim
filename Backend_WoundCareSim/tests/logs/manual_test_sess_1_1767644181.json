@@ -1,0 +1,107 @@
+{
+  "scenario_id": "week6_mock_scenario",
+  "student_id": "manual_test_student",
+  "started_at": "2026-01-05T20:16:21.907264",
+  "steps": [
+    {
+      "step": "HISTORY",
+      "transcript": "Hello, I am a nursing student. May I confirm your identity, ask about allergies, and explain the wound care procedure?",
+      "summary": {
+        "strengths": [
+          "[CommunicationAgent] Introduced self clearly as a nursing student.",
+          "[CommunicationAgent] Asked for confirmation of identity, which is important for patient safety.",
+          "[CommunicationAgent] Inquired about allergies, demonstrating awareness of potential risks.",
+          "[KnowledgeAgent] The student correctly identifies the need to confirm the patient's identity.",
+          "[KnowledgeAgent] The student appropriately asks about allergies, which is crucial for patient safety.",
+          "[ClinicalAgent] Confirmed patient identity",
+          "[ClinicalAgent] Inquired about allergies",
+          "[ClinicalAgent] Provided a clear explanation of the wound care procedure"
+        ],
+        "issues_detected": [
+          "[CommunicationAgent] Did not specify the patient's name or date of birth when confirming identity.",
+          "[CommunicationAgent] Lacked a detailed explanation of the wound care procedure, which could enhance patient understanding.",
+          "[KnowledgeAgent] The student does not mention assessing for signs of infection or pain assessment, which are critical components of the history-taking process."
+        ]
+      },
+      "scores": {
+        "agent_scores": {
+          "CommunicationAgent": 0.45,
+          "KnowledgeAgent": 0.42,
+          "ClinicalAgent": 1.0
+        },
+        "composite_score": 0.0
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T20:16:50.299468"
+    },
+    {
+      "step": "ASSESSMENT",
+      "transcript": "The wound looks fine. I will continue.",
+      "mcq_answers": {
+        "q1": "Remove dressing",
+        "q2": "Dry dressing"
+      },
+      "mcq_result": null,
+      "decision": {},
+      "timestamp": "2026-01-05T20:17:11.148339"
+    },
+    {
+      "step": "CLEANING",
+      "transcript": "I will clean the wound now without washing my hands.",
+      "summary": {
+        "strengths": [],
+        "issues_detected": [
+          "[CommunicationAgent] Failure to mention hand hygiene before cleaning the wound",
+          "[CommunicationAgent] Inadequate understanding of infection control protocols",
+          "[KnowledgeAgent] Failure to recognize the importance of hand hygiene before wound cleaning.",
+          "[ClinicalAgent] Skipped hand hygiene before cleaning the wound."
+        ]
+      },
+      "scores": {
+        "agent_scores": {
+          "CommunicationAgent": 0.0,
+          "KnowledgeAgent": 0.0,
+          "ClinicalAgent": 0.0
+        },
+        "composite_score": 0.0
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T20:17:31.564355"
+    },
+    {
+      "step": "DRESSING",
+      "transcript": "I will apply a sterile dressing and secure it properly.",
+      "summary": {
+        "strengths": [
+          "[CommunicationAgent] Clear intention to apply a sterile dressing",
+          "[CommunicationAgent] Understanding of the importance of securing the dressing properly",
+          "[KnowledgeAgent] Acknowledgment of the need for a sterile dressing",
+          "[KnowledgeAgent] Understanding the importance of securing the dressing properly",
+          "[ClinicalAgent] Intention to apply a sterile dressing",
+          "[ClinicalAgent] Intention to secure the dressing properly"
+        ],
+        "issues_detected": [
+          "[CommunicationAgent] Lack of detail on hand hygiene and PPE",
+          "[CommunicationAgent] No mention of wound assessment or documentation",
+          "[KnowledgeAgent] Lack of mention of hand hygiene before the procedure",
+          "[KnowledgeAgent] No reference to wearing appropriate PPE",
+          "[KnowledgeAgent] Failure to assess the wound for signs of infection prior to dressing application",
+          "[ClinicalAgent] No mention of hand hygiene before starting the procedure",
+          "[ClinicalAgent] No mention of wearing appropriate PPE",
+          "[ClinicalAgent] No wound assessment described prior to dressing application"
+        ]
+      },
+      "scores": {
+        "agent_scores": {
+          "CommunicationAgent": 0.42,
+          "KnowledgeAgent": 0.42,
+          "ClinicalAgent": 0.42
+        },
+        "composite_score": 0.0
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T20:17:56.356534"
+    }
+  ],
+  "finished_at": "2026-01-05T20:17:56.356534"
+}
