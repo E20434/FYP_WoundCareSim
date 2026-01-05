@@ -1,52 +1,83 @@
 {
   "scenario_id": "week6_mock_scenario",
-  "title": "Post-Operative Forearm Wound Care",
-  "patient_history": "The patient underwent minor surgery on the left forearm 48 hours ago. He has no known allergies, no history of diabetes, and reports mild pain at the wound site.",
-  "wound_details": "Surgically clean incision on the left forearm, sutured, with minimal serous discharge. No signs of infection.",
+  "scenario_title": "Post-Operative Left Forearm Wound Care",
+  "patient_history": {
+    "name": "John Doe",
+    "age": 45,
+    "gender": "Male",
+    "medical_history": [
+      "Type 2 Diabetes",
+      "Hypertension"
+    ],
+    "allergies": [
+      "Penicillin"
+    ],
+    "surgery_details": {
+      "procedure": "Minor forearm surgery",
+      "date": "2025-01-01",
+      "surgeon": "Dr. Smith"
+    }
+  },
+  "wound_details": {
+    "location": "Left forearm",
+    "wound_type": "Surgically clean wound",
+    "appearance": "Clean edges, minimal serous discharge",
+    "signs_of_infection": false
+  },
   "required_conversation_points": [
     "Confirm patient identity",
     "Ask about allergies",
-    "Ask about pain level",
-    "Ask about previous complications",
-    "Explain the wound care procedure"
+    "Explain wound care procedure",
+    "Ask about pain level"
   ],
-  "assessment_questions": {
-    "q1": {
-      "question": "What is the first step before touching the wound?",
+  "assessment_questions": [
+    {
+      "id": "q1",
+      "question": "What should the nurse do first before beginning wound care?",
       "options": [
-        "Remove dressing",
+        "Remove the old dressing",
         "Wash hands",
         "Apply antiseptic",
-        "Assess pain"
+        "Inspect the wound"
       ],
       "correct_answer": "Wash hands"
     },
-    "q2": {
-      "question": "Which sign indicates possible infection?",
+    {
+      "id": "q2",
+      "question": "Which sign may indicate wound infection?",
       "options": [
-        "Mild pain",
-        "Clear discharge",
+        "Dry wound surface",
         "Redness and warmth",
-        "Dry dressing"
+        "No pain",
+        "Closed wound edges"
       ],
       "correct_answer": "Redness and warmth"
     }
-  },
+  ],
   "evaluation_criteria": {
-    "HISTORY": {
-      "focus": "Communication and patient safety awareness"
-    },
-    "ASSESSMENT": {
-      "focus": "Knowledge of wound assessment principles"
-    },
-    "CLEANING": {
-      "focus": "Aseptic technique and safety"
-    },
-    "DRESSING": {
-      "focus": "Correct dressing application"
-    }
+    "HISTORY": [
+      "Introduces self clearly",
+      "Confirms patient identity",
+      "Explains procedure",
+      "Asks about allergies and pain"
+    ],
+    "ASSESSMENT": [
+      "Identifies wound characteristics",
+      "Recognizes signs of infection",
+      "Answers MCQs correctly"
+    ],
+    "CLEANING": [
+      "Performs hand hygiene",
+      "Uses aseptic technique",
+      "Cleans wound correctly"
+    ],
+    "DRESSING": [
+      "Applies sterile dressing",
+      "Secures dressing properly",
+      "Provides patient instructions"
+    ]
   },
   "vector_store_namespace": "week6_mock_scenario",
-  "created_by": "test_admin",
-  "created_at": "2026-01-01T10:00:00Z"
+  "created_by": "system_test",
+  "created_at": "2025-01-05T00:00:00Z"
 }

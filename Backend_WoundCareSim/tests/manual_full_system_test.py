@@ -12,27 +12,33 @@ from app.agents.knowledge_agent import KnowledgeAgent
 from app.agents.clinical_agent import ClinicalAgent
 
 
+# -------------------------------------------------
+# Logging setup
+# -------------------------------------------------
 LOG_DIR = Path(__file__).resolve().parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
 
 async def run_full_system_test():
     """
-    Manual end-to-end sanity test for Week-1 → Week-6.
-    Includes:
+    Manual end-to-end system validation (Week-1 → Week-6).
+
+    Validates:
     - Firestore scenario loading
     - Vector Store RAG
     - Real evaluator agents
-    - MCQ validation
-    - Retry loops
-    - Max-retry locking
-    - Safety blocking
-    - Dressing step
-    - JSON log dumping
+    - Scoring & readiness (Week-5)
+    - Retry logic + max-retry lock
+    - Safety override (Week-6)
+    - Dressing blocked after safety violation
     """
 
     scenario_id = "week6_mock_scenario"
     student_id = "manual_test_student"
+
+    print("\n================================================")
+    print(" FULL SYSTEM MANUAL TEST (Week-1 → Week-6)")
+    print("================================================\n")
 
     log = {
         "scenario_id": scenario_id,
@@ -40,10 +46,6 @@ async def run_full_system_test():
         "started_at": datetime.utcnow().isoformat(),
         "steps": []
     }
-
-    print("\n================================================")
-    print(" FULL SYSTEM MANUAL TEST (Week-1 → Week-6)")
-    print("================================================\n")
 
     # -------------------------------------------------
     # Core services
@@ -72,7 +74,7 @@ async def run_full_system_test():
     ]
 
     # =================================================
-    # HISTORY (success)
+    # HISTORY (expected: NOT READY)
     # =================================================
     await run_step(
         step="HISTORY",
@@ -84,12 +86,11 @@ async def run_full_system_test():
         evaluation_service=evaluation_service,
         session_manager=session_manager,
         agents=agents,
-        log=log,
-        auto_advance=True
+        log=log
     )
 
     # =================================================
-    # ASSESSMENT (max-retry lock demonstration)
+    # ASSESSMENT (retry → max-retry lock demo)
     # =================================================
     await run_assessment_with_max_retry(
         evaluation_service,
@@ -99,9 +100,9 @@ async def run_full_system_test():
     )
 
     # =================================================
-    # CLEANING (safety violation)
+    # CLEANING (safety override demo)
     # =================================================
-    await run_step(
+    safety_triggered = await run_step(
         step="CLEANING",
         transcript="I will clean the wound now without washing my hands.",
         evaluation_service=evaluation_service,
@@ -112,18 +113,19 @@ async def run_full_system_test():
     )
 
     # =================================================
-    # DRESSING (only if not locked — demonstration)
+    # DRESSING (must NOT run if safety triggered)
     # =================================================
-    session = session_manager.get_session(session_id)
-    if not session.get("locked_step"):
+    if safety_triggered:
+        print("\n[DRESSING SKIPPED]")
+        print("Reason: Safety block was correctly enforced.")
+    else:
         await run_step(
             step="DRESSING",
             transcript="I will apply a sterile dressing and secure it properly.",
             evaluation_service=evaluation_service,
             session_manager=session_manager,
             agents=agents,
-            log=log,
-            auto_advance=True
+            log=log
         )
 
     # -------------------------------------------------
@@ -152,7 +154,6 @@ async def run_step(
     session_manager,
     agents,
     log,
-    auto_advance=False,
     expect_safety_block=False
 ):
     print(f"\n================ {step} =================")
@@ -183,6 +184,8 @@ async def run_step(
 
     decision = aggregated["decision"]
 
+    print("[DECISION]", decision)
+
     log["steps"].append({
         "step": step,
         "transcript": transcript,
@@ -191,19 +194,17 @@ async def run_step(
         "timestamp": datetime.utcnow().isoformat()
     })
 
-    print("[DECISION]", decision)
-
-    if decision["safety_blocked"]:
-        print("!!! SAFETY VIOLATION DETECTED !!!")
+    if decision.get("safety_blocked"):
+        print("!!! SAFETY OVERRIDE ACTIVATED !!!")
         session_manager.lock_current_step(
             session_manager.sessions.keys().__iter__().__next__()
         )
+        return True
 
-    elif auto_advance and decision["ready_for_next_step"]:
-        next_step = session_manager.advance_step(
-            session_manager.sessions.keys().__iter__().__next__()
-        )
-        print(f"[ADVANCED TO] {next_step}")
+    if expect_safety_block:
+        print("⚠ Expected safety block but none occurred")
+
+    return False
 
 
 async def run_assessment_with_max_retry(
@@ -212,10 +213,13 @@ async def run_assessment_with_max_retry(
     agents,
     log
 ):
-    print("\n================ ASSESSMENT (MAX RETRY) =================")
+    print("\n================ ASSESSMENT (MAX RETRY DEMO) =================")
 
     transcript = "The wound looks fine. I will continue."
-    wrong_mcq = {"q1": "Remove dressing", "q2": "Dry dressing"}
+    wrong_mcq = {
+        "q1": "Remove dressing",
+        "q2": "Dry dressing"
+    }
 
     for attempt in range(1, 5):
         print(f"\n[ATTEMPT {attempt}]")
@@ -246,14 +250,14 @@ async def run_assessment_with_max_retry(
 
         decision = aggregated["decision"]
 
+        print("[DECISION]", decision)
+
         log["steps"].append({
             "step": "ASSESSMENT",
             "attempt": attempt,
             "decision": decision,
             "timestamp": datetime.utcnow().isoformat()
         })
-
-        print("[DECISION]", decision)
 
         if decision["ready_for_next_step"]:
             session_manager.advance_step(
@@ -276,6 +280,5 @@ async def run_assessment_with_max_retry(
 # -------------------------------------------------
 # Entry point
 # -------------------------------------------------
-
 if __name__ == "__main__":
     asyncio.run(run_full_system_test())

@@ -15,13 +15,19 @@ class Coordinator:
                 "step": current_step,
                 "summary": {},
                 "agent_feedback": {},
-                "notes": "No evaluator outputs received",
+                "combined_explanation": "",
+                "scores": {},
                 "decision": {
                     "ready_for_next_step": False,
-                    "reason": "No evaluations available"
+                    "safety_blocked": False,
+                    "blocking_issues": ["No evaluations available"],
+                    "threshold_used": None
                 }
             }
 
+        # -------------------------------------------------
+        # Collect agent feedback
+        # -------------------------------------------------
         agent_feedback = {}
         all_strengths = []
         all_issues = []
@@ -46,14 +52,42 @@ class Coordinator:
                 f"[{ev.agent_name}] {ev.explanation}"
             )
 
+        # -------------------------------------------------
+        # Scoring & readiness (Week-5)
+        # -------------------------------------------------
         score_result = aggregate_scores(evaluations, current_step)
+
         readiness_result = check_readiness(
             evaluations,
             current_step,
             score_result["composite_score"]
         )
 
-        # ---- Final response ----
+        # -------------------------------------------------
+        # SAFETY OVERRIDE (Week-6 – CRITICAL)
+        # -------------------------------------------------
+        safety_blocked = False
+        blocking_issues = []
+
+        if current_step in ["CLEANING", "DRESSING"]:
+            for ev in evaluations:
+                if (
+                    ev.agent_name == "ClinicalAgent"
+                    and ev.verdict == "Inappropriate"
+                ):
+                    safety_blocked = True
+                    blocking_issues.append(
+                        "Unsafe clinical action detected during procedure"
+                    )
+                    break
+
+        # Inject safety override into decision
+        readiness_result["safety_blocked"] = safety_blocked
+        readiness_result["blocking_issues"] = blocking_issues
+
+        # -------------------------------------------------
+        # Final aggregated response
+        # -------------------------------------------------
         return {
             "step": current_step,
             "summary": {
