@@ -57,13 +57,13 @@ class EvaluationService:
 
         step = session["current_step"]
 
-        # Coordinator aggregation (Week-5 logic)
+        # ---- Coordinator aggregation (Week-5 logic) ----
         coordinator_output = self.coordinator.aggregate(
             evaluations=evaluator_outputs,
             current_step=step
         )
 
-        # MCQ enrichment (ASSESSMENT only)
+        # ---- MCQ enrichment (ASSESSMENT only) ----
         if step == "ASSESSMENT" and student_mcq_answers:
             scenario_meta = load_scenario(session["scenario_id"])
             mcq_result = self.mcq_evaluator.validate_mcq_answers(
@@ -72,35 +72,50 @@ class EvaluationService:
             )
             coordinator_output["mcq_result"] = mcq_result
 
-        # ----------------------------
-        # Explicit decision extraction (NEW)
-        # ----------------------------
+        # ---- Extract decision block correctly (FIXED) ----
+        decision_block = coordinator_output.get("decision", {})
+
         decision = {
-            "ready_for_next_step": coordinator_output.get(
+            "ready_for_next_step": decision_block.get(
                 "ready_for_next_step", False
             ),
-            "safety_blocked": coordinator_output.get(
+            "safety_blocked": decision_block.get(
                 "safety_blocked", False
             ),
-            "blocking_issues": coordinator_output.get(
+            "blocking_issues": decision_block.get(
                 "blocking_issues", []
             ),
-            "threshold_used": coordinator_output.get(
-                "threshold_used", None
+            "threshold_used": decision_block.get(
+                "threshold_used"
             ),
         }
 
-        # Store evaluation snapshot
+        # ---- Store evaluation snapshot ----
         self.session_manager.store_last_evaluation(
             session_id,
             {
                 **coordinator_output,
-                **decision
+                "decision": decision
             }
         )
 
-        # Return full evaluation + explicit decision flags
+        # ---- Return combined output (clean, explicit) ----
         return {
             **coordinator_output,
-            **decision
+            "decision": decision
         }
+
+    # ------------------------------------------------
+    # Input-type helper (Week-6 forward prep)
+    # ------------------------------------------------
+    def determine_input_type(self, payload: Dict[str, Any]) -> str:
+        """
+        Determines whether the incoming payload represents
+        a text-based interaction or an action-based interaction.
+
+        NOTE:
+        Actual action routing is implemented in Week-7.
+        """
+        if "action_type" in payload:
+            return "ACTION"
+        return "TEXT"
