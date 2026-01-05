@@ -10,6 +10,9 @@ class Coordinator:
         current_step: str
     ) -> Dict[str, Any]:
 
+        # -------------------------------------------------
+        # No evaluations case
+        # -------------------------------------------------
         if not evaluations:
             return {
                 "step": current_step,
@@ -26,7 +29,7 @@ class Coordinator:
             }
 
         # -------------------------------------------------
-        # Collect agent feedback
+        # Collect per-agent feedback
         # -------------------------------------------------
         agent_feedback = {}
         all_strengths = []
@@ -53,7 +56,7 @@ class Coordinator:
             )
 
         # -------------------------------------------------
-        # Scoring & readiness (Week-5)
+        # Scoring & readiness (Week-5 logic)
         # -------------------------------------------------
         score_result = aggregate_scores(evaluations, current_step)
 
@@ -64,26 +67,31 @@ class Coordinator:
         )
 
         # -------------------------------------------------
-        # SAFETY OVERRIDE (Week-6 – CRITICAL)
+        # SAFETY OVERRIDE (Week-6 — CRITICAL)
         # -------------------------------------------------
         safety_blocked = False
         blocking_issues = []
 
         if current_step in ["CLEANING", "DRESSING"]:
             for ev in evaluations:
-                if (
-                    ev.agent_name == "ClinicalAgent"
-                    and ev.verdict == "Inappropriate"
-                ):
+                if ev.agent_name == "ClinicalAgent" and ev.verdict == "Inappropriate":
                     safety_blocked = True
                     blocking_issues.append(
                         "Unsafe clinical action detected during procedure"
                     )
                     break
 
-        # Inject safety override into decision
-        readiness_result["safety_blocked"] = safety_blocked
-        readiness_result["blocking_issues"] = blocking_issues
+        # -------------------------------------------------
+        # FINAL DECISION (Safety overrides readiness)
+        # -------------------------------------------------
+        decision = {
+            "ready_for_next_step": (
+                False if safety_blocked else readiness_result.get("ready_for_next_step", False)
+            ),
+            "safety_blocked": safety_blocked,
+            "blocking_issues": blocking_issues,
+            "threshold_used": readiness_result.get("threshold_used"),
+        }
 
         # -------------------------------------------------
         # Final aggregated response
@@ -97,5 +105,5 @@ class Coordinator:
             "agent_feedback": agent_feedback,
             "combined_explanation": " ".join(explanations),
             "scores": score_result,
-            "decision": readiness_result,
+            "decision": decision,
         }
