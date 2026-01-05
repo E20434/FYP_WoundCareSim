@@ -1,27 +1,30 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from app.services.session_manager import SessionManager
-from app.services.scenario_loader import load_scenario
 from app.services.evaluation_service import EvaluationService
 from app.core.coordinator import Coordinator
-from app.core.state_machine import Step, next_step
+from app.core.state_machine import Step
 from app.utils.schema import EvaluatorResponse
 from app.rag.retriever import retrieve_with_rag
 
-
 router = APIRouter(prefix="/session", tags=["Session"])
 
-# Core services
+# -------------------------------------------------
+# Core services (Week-6 correct wiring)
+# -------------------------------------------------
+
 session_manager = SessionManager()
 coordinator = Coordinator()
-evaluation_service = EvaluationService(coordinator=coordinator)
+evaluation_service = EvaluationService(
+    coordinator=coordinator,
+    session_manager=session_manager
+)
 
-
-# ----------------------------
+# -------------------------------------------------
 # Request models
-# ----------------------------
+# -------------------------------------------------
 
 class StartSessionRequest(BaseModel):
     scenario_id: str
@@ -33,23 +36,23 @@ class EvalInput(BaseModel):
     step: str
     user_input: Optional[str] = None
     evaluator_outputs: List[EvaluatorResponse]
+    student_mcq_answers: Optional[Dict[str, str]] = None
 
 
-# ----------------------------
+# -------------------------------------------------
 # Routes
-# ----------------------------
+# -------------------------------------------------
 
 @router.post("/step")
 async def session_step(payload: EvalInput):
-    sid = payload.session_id
-    session = session_manager.get_session(sid)
+    session = session_manager.get_session(payload.session_id)
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # ----------------------------
-    # Step order enforcement
-    # ----------------------------
+    # -------------------------------------------------
+    # Step order enforcement (Week-6A)
+    # -------------------------------------------------
     current_step = session["current_step"]
 
     if payload.step != current_step:
@@ -58,128 +61,71 @@ async def session_step(payload: EvalInput):
             detail=f"Invalid step order. Current step is '{current_step}'."
         )
 
-    if session.get("locked"):
-        raise HTTPException(
-            status_code=403,
-            detail="Session is locked due to safety violation."
-        )
+    if session.get("locked_step"):
+        return {
+            "session_id": payload.session_id,
+            "current_step": current_step,
+            "session_locked": True,
+            "message": "Session is locked due to safety violation."
+        }
 
-    scenario_id = session["scenario_id"]
-    rag_result = None
-
-    # ----------------------------
+    # -------------------------------------------------
     # Optional RAG retrieval
-    # ----------------------------
+    # -------------------------------------------------
+    rag_result = None
     if payload.user_input:
         try:
             rag_result = await retrieve_with_rag(
                 query=payload.user_input,
-                scenario_id=scenario_id,
-                system_instruction=(
-                    f"You are assisting in step '{current_step}' "
-                    "of a surgically clean wound care procedure."
-                ),
-            )
-
-            session_manager.add_rag_result(
-                sid,
-                {
-                    "step": current_step,
-                    "query": payload.user_input,
-                    "llm_output": rag_result["text"],
-                },
+                scenario_id=session["scenario_id"]
             )
         except Exception as e:
             print(f"RAG retrieval failed: {str(e)}")
 
-    # ----------------------------
-    # Evaluation aggregation
-    # ----------------------------
-    try:
-        evaluation = await evaluation_service.aggregate_evaluations(
-            evaluator_outputs=payload.evaluator_outputs,
-            step=current_step,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Evaluation aggregation failed: {str(e)}",
-        )
-
-    # ----------------------------
-    # Session logging
-    # ----------------------------
-    session_manager.add_log(
-        sid,
-        {
-            "step": current_step,
-            "user_input": payload.user_input,
-            "evaluation": evaluation,
-            "rag_used": rag_result is not None,
-        },
+    # -------------------------------------------------
+    # Evaluation aggregation (Week-6 correct call)
+    # -------------------------------------------------
+    evaluation = await evaluation_service.aggregate_evaluations(
+        session_id=payload.session_id,
+        evaluator_outputs=payload.evaluator_outputs,
+        student_mcq_answers=payload.student_mcq_answers
     )
 
-    # ----------------------------
-    # SAFETY ENFORCEMENT (Week-6)
-    # ----------------------------
-    if evaluation.get("safety_blocked"):
-        session_manager.lock_session(
-            sid,
-            reason="Unsafe clinical action detected"
-        )
+    decision = evaluation.get("decision", {})
+
+    # -------------------------------------------------
+    # SAFETY ENFORCEMENT (Week-6A)
+    # -------------------------------------------------
+    if decision.get("safety_blocked"):
+        session_manager.lock_current_step(payload.session_id)
 
         return {
-            "session_id": sid,
+            "session_id": payload.session_id,
             "current_step": current_step,
-            "locked": True,
-            "evaluation": evaluation,
-            "message": "Session locked due to unsafe clinical action."
+            "session_locked": True,
+            "evaluation": evaluation
         }
 
-    # ----------------------------
+    # -------------------------------------------------
     # READINESS & RETRY ENFORCEMENT
-    # ----------------------------
-    if evaluation.get("ready_for_next_step"):
-        try:
-            next_s = next_step(Step(current_step))
-            session_manager.advance_step(sid, next_s.value)
-        except Exception:
-            next_s = None
-    else:
-        session_manager.increment_attempt(sid)
+    # -------------------------------------------------
+    if decision.get("ready_for_next_step"):
+        next_step = session_manager.advance_step(payload.session_id)
+        session_manager.reset_attempts(payload.session_id)
 
-        if session_manager.exceeded_max_attempts(sid):
-            session_manager.lock_session(
-                sid,
-                reason="Maximum retries exceeded"
-            )
+        return {
+            "session_id": payload.session_id,
+            "current_step": current_step,
+            "next_step": next_step,
+            "evaluation": evaluation
+        }
 
-            return {
-                "session_id": sid,
-                "current_step": current_step,
-                "locked": True,
-                "evaluation": evaluation,
-                "message": "Maximum retry attempts exceeded."
-            }
+    # Retry path
+    session_manager.increment_attempt(payload.session_id)
 
-        next_s = None
-
-    # ----------------------------
-    # Response (VR-ready)
-    # ----------------------------
-    response = {
-        "session_id": sid,
+    return {
+        "session_id": payload.session_id,
         "current_step": current_step,
-        "evaluation": evaluation,
-        "ready_for_next_step": evaluation.get("ready_for_next_step", False),
-        "locked": session.get("locked", False),
+        "retry_count": session["attempt_count"].get(current_step, 0),
+        "evaluation": evaluation
     }
-
-    if rag_result:
-        response["assistant_response"] = rag_result["text"]
-
-    if next_s:
-        response["next_step"] = next_s.value
-
-    return response
-
