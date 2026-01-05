@@ -1,0 +1,52 @@
+{
+  "scenario_id": "week6_mock_scenario",
+  "title": "Post-Operative Forearm Wound Care",
+  "patient_history": "The patient underwent minor surgery on the left forearm 48 hours ago. He has no known allergies, no history of diabetes, and reports mild pain at the wound site.",
+  "wound_details": "Surgically clean incision on the left forearm, sutured, with minimal serous discharge. No signs of infection.",
+  "required_conversation_points": [
+    "Confirm patient identity",
+    "Ask about allergies",
+    "Ask about pain level",
+    "Ask about previous complications",
+    "Explain the wound care procedure"
+  ],
+  "assessment_questions": {
+    "q1": {
+      "question": "What is the first step before touching the wound?",
+      "options": [
+        "Remove dressing",
+        "Wash hands",
+        "Apply antiseptic",
+        "Assess pain"
+      ],
+      "correct_answer": "Wash hands"
+    },
+    "q2": {
+      "question": "Which sign indicates possible infection?",
+      "options": [
+        "Mild pain",
+        "Clear discharge",
+        "Redness and warmth",
+        "Dry dressing"
+      ],
+      "correct_answer": "Redness and warmth"
+    }
+  },
+  "evaluation_criteria": {
+    "HISTORY": {
+      "focus": "Communication and patient safety awareness"
+    },
+    "ASSESSMENT": {
+      "focus": "Knowledge of wound assessment principles"
+    },
+    "CLEANING": {
+      "focus": "Aseptic technique and safety"
+    },
+    "DRESSING": {
+      "focus": "Correct dressing application"
+    }
+  },
+  "vector_store_namespace": "week6_mock_scenario",
+  "created_by": "test_admin",
+  "created_at": "2026-01-01T10:00:00Z"
+}
