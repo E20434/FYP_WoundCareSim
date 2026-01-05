@@ -83,24 +83,35 @@ def check_readiness(
 ) -> Dict[str, object]:
     """
     Decide whether the system can safely move to the next step.
+    Week-6: includes explicit safety override logic.
     """
 
     blocking_issues = []
+    safety_blocked = False
 
-    # Safety-first rule: any Inappropriate verdict blocks in clinical steps
+    # ---- SAFETY OVERRIDE (Week-6) ----
     for ev in evaluations:
-        if ev.verdict == "Inappropriate":
-            if current_step in {"CLEANING", "DRESSING"} and ev.agent_name == "ClinicalAgent":
-                blocking_issues.append(
-                    f"Critical clinical issue detected by {ev.agent_name}"
-                )
+        if (
+            ev.agent_name == "ClinicalAgent"
+            and ev.verdict == "Inappropriate"
+            and current_step in {"CLEANING", "DRESSING"}
+        ):
+            safety_blocked = True
+            blocking_issues.append(
+                "Unsafe clinical action detected during "
+                f"{current_step.lower()} step"
+            )
 
     threshold = STEP_THRESHOLD.get(current_step, 1.0)
 
-    ready = composite_score >= threshold and not blocking_issues
+    ready_for_next_step = (
+        composite_score >= threshold
+        and not safety_blocked
+    )
 
     return {
-        "ready_for_next_step": ready,
+        "ready_for_next_step": ready_for_next_step,
+        "safety_blocked": safety_blocked,
         "blocking_issues": blocking_issues,
-        "threshold": threshold,
+        "threshold_used": threshold,
     }

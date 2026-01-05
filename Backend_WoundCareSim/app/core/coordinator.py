@@ -10,9 +10,6 @@ class Coordinator:
         current_step: str
     ) -> Dict[str, Any]:
 
-        # -------------------------------------------------
-        # No evaluations case
-        # -------------------------------------------------
         if not evaluations:
             return {
                 "step": current_step,
@@ -24,16 +21,13 @@ class Coordinator:
                     "ready_for_next_step": False,
                     "safety_blocked": False,
                     "blocking_issues": ["No evaluations available"],
-                    "threshold_used": None
-                }
+                    "threshold_used": None,
+                },
             }
 
-        # -------------------------------------------------
-        # Collect per-agent feedback
-        # -------------------------------------------------
         agent_feedback = {}
-        all_strengths = []
-        all_issues = []
+        strengths = []
+        issues = []
         explanations = []
 
         for ev in evaluations:
@@ -45,65 +39,33 @@ class Coordinator:
                 "confidence": ev.confidence,
             }
 
-            all_strengths.extend(
-                [f"[{ev.agent_name}] {s}" for s in ev.strengths]
-            )
-            all_issues.extend(
-                [f"[{ev.agent_name}] {i}" for i in ev.issues_detected]
-            )
-            explanations.append(
-                f"[{ev.agent_name}] {ev.explanation}"
-            )
+            strengths.extend([f"[{ev.agent_name}] {s}" for s in ev.strengths])
+            issues.extend([f"[{ev.agent_name}] {i}" for i in ev.issues_detected])
+            explanations.append(f"[{ev.agent_name}] {ev.explanation}")
 
-        # -------------------------------------------------
-        # Scoring & readiness (Week-5 logic)
-        # -------------------------------------------------
-        score_result = aggregate_scores(evaluations, current_step)
-
-        readiness_result = check_readiness(
+        scores = aggregate_scores(evaluations, current_step)
+        readiness = check_readiness(
             evaluations,
             current_step,
-            score_result["composite_score"]
+            scores["composite_score"]
         )
 
-        # -------------------------------------------------
-        # SAFETY OVERRIDE (Week-6 — CRITICAL)
-        # -------------------------------------------------
-        safety_blocked = False
-        blocking_issues = []
-
-        if current_step in ["CLEANING", "DRESSING"]:
-            for ev in evaluations:
-                if ev.agent_name == "ClinicalAgent" and ev.verdict == "Inappropriate":
-                    safety_blocked = True
-                    blocking_issues.append(
-                        "Unsafe clinical action detected during procedure"
-                    )
-                    break
-
-        # -------------------------------------------------
-        # FINAL DECISION (Safety overrides readiness)
-        # -------------------------------------------------
+        # 🔥 NORMALIZE DECISION KEYS (CRITICAL)
         decision = {
-            "ready_for_next_step": (
-                False if safety_blocked else readiness_result.get("ready_for_next_step", False)
-            ),
-            "safety_blocked": safety_blocked,
-            "blocking_issues": blocking_issues,
-            "threshold_used": readiness_result.get("threshold_used"),
+            "ready_for_next_step": readiness.get("ready_for_next_step", False),
+            "safety_blocked": readiness.get("safety_blocked", False),
+            "blocking_issues": readiness.get("blocking_issues", []),
+            "threshold_used": readiness.get("threshold_used"),
         }
 
-        # -------------------------------------------------
-        # Final aggregated response
-        # -------------------------------------------------
         return {
             "step": current_step,
             "summary": {
-                "strengths": all_strengths,
-                "issues_detected": all_issues,
+                "strengths": strengths,
+                "issues_detected": issues,
             },
             "agent_feedback": agent_feedback,
             "combined_explanation": " ".join(explanations),
-            "scores": score_result,
+            "scores": scores,
             "decision": decision,
         }
