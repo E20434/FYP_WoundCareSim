@@ -1,0 +1,133 @@
+{
+  "scenario_id": "week6_mock_scenario",
+  "student_id": "manual_test_student",
+  "started_at": "2026-01-05T21:05:58.861973",
+  "steps": [
+    {
+      "step": "HISTORY",
+      "transcript": "Hello, I am a nursing student. May I confirm your identity, ask about allergies, and explain the wound care procedure?",
+      "summary": {
+        "strengths": [
+          "[CommunicationAgent] Introduced self as a nursing student",
+          "[CommunicationAgent] Expressed intent to confirm identity and ask about allergies",
+          "[CommunicationAgent] Mentioned explaining the wound care procedure",
+          "[KnowledgeAgent] The student correctly identifies the need to confirm the patient's identity.",
+          "[KnowledgeAgent] The student appropriately asks about allergies, which is crucial for patient safety.",
+          "[ClinicalAgent] Introduced self as a nursing student.",
+          "[ClinicalAgent] Initiated identity confirmation process.",
+          "[ClinicalAgent] Inquired about allergies."
+        ],
+        "issues_detected": [
+          "[CommunicationAgent] Did not confirm the patient's full name and date of birth",
+          "[CommunicationAgent] Lacked a personal touch in the introduction",
+          "[CommunicationAgent] Did not specify the importance of confirming identity and allergies",
+          "[KnowledgeAgent] The student does not mention assessing for signs of infection, which is a key component of the history-taking process.",
+          "[ClinicalAgent] Did not explicitly confirm the patient's identity with full name and date of birth.",
+          "[ClinicalAgent] Did not mention performing hand hygiene or wearing personal protective equipment before explaining the procedure."
+        ]
+      },
+      "scores": {
+        "agent_scores": {
+          "CommunicationAgent": 0.42,
+          "KnowledgeAgent": 0.42,
+          "ClinicalAgent": 0.42
+        },
+        "composite_score": 0.42
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T21:06:28.565462"
+    },
+    {
+      "step": "ASSESSMENT",
+      "transcript": "The wound looks fine. I will continue.",
+      "mcq_answers": {
+        "q1": "Remove dressing",
+        "q2": "Dry dressing"
+      },
+      "mcq_result": {
+        "total_questions": 2,
+        "correct_count": 0,
+        "score": 0.0,
+        "feedback": [
+          {
+            "question_id": "q1",
+            "question": "What should the nurse do first before beginning wound care?",
+            "status": "incorrect",
+            "student_answer": "Remove dressing",
+            "correct_answer": "Wash hands",
+            "explanation": "The correct answer is 'Wash hands'."
+          },
+          {
+            "question_id": "q2",
+            "question": "Which sign may indicate wound infection?",
+            "status": "incorrect",
+            "student_answer": "Dry dressing",
+            "correct_answer": "Redness and warmth",
+            "explanation": "The correct answer is 'Redness and warmth'."
+          }
+        ],
+        "summary": "0/2 correct"
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T21:06:48.963511"
+    },
+    {
+      "step": "CLEANING",
+      "transcript": "I will clean the wound now without washing my hands.",
+      "summary": {
+        "strengths": [],
+        "issues_detected": [
+          "[CommunicationAgent] Failure to acknowledge hand hygiene",
+          "[CommunicationAgent] Inadequate communication of safety protocols",
+          "[KnowledgeAgent] Failure to recognize the importance of hand hygiene before wound cleaning.",
+          "[ClinicalAgent] Skipped hand hygiene before cleaning the wound"
+        ]
+      },
+      "scores": {
+        "agent_scores": {
+          "CommunicationAgent": 0.0,
+          "KnowledgeAgent": 0.0,
+          "ClinicalAgent": 0.0
+        },
+        "composite_score": 0.0
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T21:07:08.382082"
+    },
+    {
+      "step": "DRESSING",
+      "transcript": "I will apply a sterile dressing and secure it properly.",
+      "summary": {
+        "strengths": [
+          "[CommunicationAgent] Clear intention to apply a sterile dressing",
+          "[CommunicationAgent] Focus on securing the dressing properly",
+          "[KnowledgeAgent] Recognizes the need to apply a sterile dressing",
+          "[KnowledgeAgent] Understands the importance of securing the dressing properly"
+        ],
+        "issues_detected": [
+          "[CommunicationAgent] Lack of detail on hand hygiene and PPE",
+          "[CommunicationAgent] No mention of wound assessment or cleaning",
+          "[CommunicationAgent] Missing steps in the dressing application process",
+          "[KnowledgeAgent] Did not mention hand hygiene",
+          "[KnowledgeAgent] Did not mention the use of PPE",
+          "[KnowledgeAgent] Did not assess the wound for signs of infection before applying the dressing",
+          "[ClinicalAgent] No mention of hand hygiene before handling materials.",
+          "[ClinicalAgent] No indication of wearing gloves during the procedure.",
+          "[ClinicalAgent] Lack of wound assessment for signs of infection prior to dressing application.",
+          "[ClinicalAgent] No mention of cleaning the wound with sterile saline if necessary."
+        ]
+      },
+      "scores": {
+        "agent_scores": {
+          "CommunicationAgent": 0.42,
+          "KnowledgeAgent": 0.42,
+          "ClinicalAgent": 0.0
+        },
+        "composite_score": 0.084
+      },
+      "decision": {},
+      "timestamp": "2026-01-05T21:07:28.386582"
+    }
+  ],
+  "finished_at": "2026-01-05T21:07:28.387199"
+}

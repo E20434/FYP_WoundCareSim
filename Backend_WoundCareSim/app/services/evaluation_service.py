@@ -64,7 +64,7 @@ class EvaluationService:
         if not session:
             raise ValueError("Session not found")
 
-        step = session["current_step"]
+        step = evaluator_outputs[0].step
 
         # ------------------------------------------------
         # Aggregate evaluator feedback
@@ -77,12 +77,24 @@ class EvaluationService:
         # ------------------------------------------------
         # MCQ enrichment (ASSESSMENT only, formative)
         # ------------------------------------------------
-        if step == "ASSESSMENT" and student_mcq_answers:
+        if step == "ASSESSMENT":
             scenario_meta = load_scenario(session["scenario_id"])
-            mcq_result = self.mcq_evaluator.validate_mcq_answers(
-                student_mcq_answers,
-                scenario_meta.get("assessment_questions", [])
-            )
+
+            assessment_questions = scenario_meta.get("assessment_questions")
+
+            if isinstance(assessment_questions, list) and student_mcq_answers:
+                mcq_result = self.mcq_evaluator.validate_mcq_answers(
+                    student_answers=student_mcq_answers,
+                    assessment_questions=assessment_questions
+                )
+            else:
+                mcq_result = {
+                    "total_questions": 0,
+                    "correct_count": 0,
+                    "feedback": [],
+                    "summary": "No MCQ questions available"
+                }
+
             coordinator_output["mcq_result"] = mcq_result
 
         # ------------------------------------------------

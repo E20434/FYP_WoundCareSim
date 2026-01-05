@@ -228,8 +228,22 @@ async def run_assessment(
         student_mcq_answers=student_mcq_answers
     )
 
+    mcq = aggregated.get("mcq_result")
+
     print("\n--- MCQ FEEDBACK ---")
-    print(aggregated.get("mcq_result", "No MCQ feedback"))
+
+    if not mcq:
+        print("No MCQ questions for this assessment.")
+    else:
+        print(f"Score: {mcq['summary']}")
+        for q in mcq["feedback"]:
+            if q["status"] == "correct":
+                print(f"✔ {q['question']}")
+            else:
+                print(f"✖ {q['question']}")
+                print(f"   Your answer   : {q['student_answer']}")
+                print(f"   Correct answer: {q['correct_answer']}")
+
 
     log["steps"].append({
         "step": "ASSESSMENT",
