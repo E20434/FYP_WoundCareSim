@@ -13,22 +13,12 @@ class EvaluationService:
     """
     Orchestrates evaluator agents and aggregates feedback.
 
-    IMPORTANT (Week-6 / Week-7):
+    Week-7 characteristics:
     - Feedback-only
     - No blocking
     - No progression enforcement
+    - Supports multi-turn conversation and action events
     """
-    WEEK-7 UPDATE:
-    - Now accepts aggregated transcript + action events
-    - HISTORY step uses conversation transcript
-    - CLEANING/DRESSING steps use action events
-    - All outputs remain feedback-only
-
-    IMPORTANT:
-    - This service does NOT block steps
-    - This service does NOT enforce progression
-    - All outputs are feedback-only
-    """`
 
     def __init__(
         self,
@@ -39,160 +29,63 @@ class EvaluationService:
         self.session_manager = session_manager
         self.mcq_evaluator = MCQEvaluator()
 
-        # Week-7: multi-turn conversation support
+        # Week-7 additions
         self.conversation_manager = ConversationManager()
 
     # ------------------------------------------------
-    # Context preparation (Week-7 aware)
+    # Context preparation (Week-7 FINAL)
     # ------------------------------------------------
     async def prepare_agent_context(
         self,
         session_id: str,
-    # Context preparation (UPDATED for Week-7)
-    # ------------------------------------------------
-    async def prepare_agent_context(
-        self,
         scenario_id: str,
-        step: str,
-        transcript: Optional[str] = None,
-        aggregated_transcript: Optional[str] = None,
-        action_events: Optional[List[Dict[str, Any]]] = None
+        step: str
     ) -> Dict[str, Any]:
         """
-        Prepares context for evaluator agents based on step type.
-        
-        Week-7 Changes:
-        - HISTORY step: uses aggregated_transcript (multi-turn conversation)
-        - CLEANING/DRESSING steps: uses action_events
-        - Other steps: uses single transcript (backward compatible)
-        
-        Args:
-            scenario_id: Scenario identifier
-            step: Current step name
-            transcript: Single-turn transcript (legacy/backward compatible)
-            aggregated_transcript: Multi-turn conversation history (Week-7)
-            action_events: List of action events (Week-7)
-        
-        Returns:
-            Context dictionary for evaluator agents
-        """
-        scenario_metadata = load_scenario(scenario_id)
+        Prepares evaluation context based on step type.
 
-        # HISTORY uses aggregated multi-turn transcript
+        - HISTORY: aggregated conversation transcript
+        - CLEANING / DRESSING: symbolic action events
+        - Others: empty transcript (legacy-safe)
+        """
+
+        scenario_metadata = load_scenario(scenario_id)
+        session = self.session_manager.get_session(session_id)
+
+        transcript = ""
+        action_events: List[Dict[str, Any]] = []
+
+        # HISTORY → multi-turn transcript
         if step == "HISTORY":
             transcript = self.conversation_manager.get_aggregated_transcript(
                 session_id=session_id,
                 step=step
             )
-        else:
-            transcript = ""
+
+        # CLEANING / DRESSING → action events
+        elif step in ["CLEANING", "DRESSING"]:
+            action_events = session.get("action_events", []) if session else []
+
+        # RAG query adapts to available context
+        rag_query = transcript or (
+            f"{step} procedure actions" if action_events else "clinical nursing evaluation"
+        )
 
         rag = await retrieve_with_rag(
-            query=transcript or "clinical nursing evaluation",
+            query=rag_query,
             scenario_id=scenario_id
         )
 
         return {
+            "step": step,
+            "scenario_metadata": scenario_metadata,
             "transcript": transcript,
-            "step": step,
-            "scenario_metadata": scenario_metadata,
+            "action_events": action_events,   # Prepared, not yet consumed by agents
             "rag_context": rag.get("text", "")
-        # ------------------------------------------------
-        # Step-specific context building
-        # ------------------------------------------------
-        context = {
-            "step": step,
-            "scenario_metadata": scenario_metadata,
         }
 
-        # HISTORY step: use aggregated conversation transcript
-        if step == "HISTORY":
-            final_transcript = aggregated_transcript or transcript or ""
-            
-            rag = await retrieve_with_rag(
-                query=final_transcript,
-                scenario_id=scenario_id
-            )
-            
-            context["transcript"] = final_transcript
-            context["conversation_transcript"] = final_transcript  # Explicit for clarity
-            context["rag_context"] = rag["text"]
-
-        # CLEANING/DRESSING steps: use action events
-        elif step in ["CLEANING", "DRESSING"]:
-            context["action_events"] = action_events or []
-            context["action_summary"] = self._format_action_summary(action_events or [])
-            
-            # Still provide RAG context based on actions
-            action_query = self._create_action_query(action_events or [], step)
-            rag = await retrieve_with_rag(
-                query=action_query,
-                scenario_id=scenario_id
-            )
-            context["rag_context"] = rag["text"]
-
-        # Other steps: backward compatible (single transcript)
-        else:
-            final_transcript = transcript or ""
-            
-            rag = await retrieve_with_rag(
-                query=final_transcript,
-                scenario_id=scenario_id
-            )
-            
-            context["transcript"] = final_transcript
-            context["rag_context"] = rag["text"]
-
-        return context
-
     # ------------------------------------------------
-    # Action event helpers (NEW for Week-7)
-    # ------------------------------------------------
-    def _format_action_summary(self, action_events: List[Dict[str, Any]]) -> str:
-        """
-        Formats action events into a readable summary for evaluators.
-        
-        Args:
-            action_events: List of action event dictionaries
-        
-        Returns:
-            Formatted string summary of actions
-        """
-        if not action_events:
-            return "No actions performed yet."
-        
-        summary_lines = []
-        for idx, event in enumerate(action_events, 1):
-            action_type = event.get("action_type", "UNKNOWN")
-            timestamp = event.get("timestamp", "N/A")
-            metadata = event.get("metadata", {})
-            
-            line = f"{idx}. {action_type} at {timestamp}"
-            if metadata:
-                line += f" | Details: {metadata}"
-            summary_lines.append(line)
-        
-        return "\n".join(summary_lines)
-
-    def _create_action_query(self, action_events: List[Dict[str, Any]], step: str) -> str:
-        """
-        Creates a query string from action events for RAG retrieval.
-        
-        Args:
-            action_events: List of action event dictionaries
-            step: Current step name
-        
-        Returns:
-            Query string for RAG
-        """
-        if not action_events:
-            return f"{step} procedure actions"
-        
-        action_types = [event.get("action_type", "") for event in action_events]
-        return f"{step} procedure: {', '.join(action_types)}"
-
-    # ------------------------------------------------
-    # Evaluation aggregation (UPDATED for Week-7)
+    # Evaluation aggregation (UNCHANGED, Week-7 safe)
     # ------------------------------------------------
     async def aggregate_evaluations(
         self,
@@ -200,45 +93,20 @@ class EvaluationService:
         evaluator_outputs: List[EvaluatorResponse],
         student_mcq_answers: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
-        """
-        Aggregates evaluator feedback into a unified response.
-        
-        Week-7: Now handles both conversation-based and action-based evaluations.
-        
-        Args:
-            session_id: Session identifier
-            evaluator_outputs: List of evaluator responses
-            student_mcq_answers: MCQ answers (ASSESSMENT step only)
-        
-        Returns:
-            Aggregated feedback dictionary (feedback-only, non-blocking)
-        """
+
         session = self.session_manager.get_session(session_id)
         if not session:
             raise ValueError("Session not found")
 
         step = evaluator_outputs[0].step
 
-        # ------------------------------------------------
         # Aggregate evaluator feedback
-        # ------------------------------------------------
         coordinator_output = self.coordinator.aggregate(
             evaluations=evaluator_outputs,
             current_step=step
         )
 
-        # ------------------------------------------------
-        # Add context metadata (NEW for Week-7)
-        # ------------------------------------------------
-        coordinator_output["evaluation_metadata"] = {
-            "step": step,
-            "evaluation_type": self._determine_evaluation_type(step),
-            "timestamp": self._get_current_timestamp()
-        }
-
-        # ------------------------------------------------
-        # MCQ enrichment (ASSESSMENT only, formative)
-        # ------------------------------------------------
+        # MCQ enrichment (ASSESSMENT only)
         if step == "ASSESSMENT":
             scenario_meta = load_scenario(session["scenario_id"])
             assessment_questions = scenario_meta.get("assessment_questions")
@@ -258,9 +126,7 @@ class EvaluationService:
 
             coordinator_output["mcq_result"] = mcq_result
 
-        # ------------------------------------------------
-        # Store evaluation snapshot (feedback only)
-        # ------------------------------------------------
+        # Store evaluation snapshot (feedback-only)
         self.session_manager.store_last_evaluation(
             session_id=session_id,
             evaluation=coordinator_output
@@ -269,117 +135,12 @@ class EvaluationService:
         return coordinator_output
 
     # ------------------------------------------------
-    # Helper methods (NEW for Week-7)
-    # ------------------------------------------------
-    def _determine_evaluation_type(self, step: str) -> str:
-        """
-        Determines the type of evaluation based on step.
-        
-        Args:
-            step: Step name
-        
-        Returns:
-            Evaluation type string
-        """
-        if step == "HISTORY":
-            return "CONVERSATION_BASED"
-        elif step in ["CLEANING", "DRESSING"]:
-            return "ACTION_BASED"
-        else:
-            return "TEXT_BASED"
-
-    def _get_current_timestamp(self) -> str:
-        """
-        Returns current timestamp in ISO format.
-        
-        Returns:
-            ISO format timestamp string
-        """
-        from datetime import datetime
-        return datetime.utcnow().isoformat() + "Z"
-
-    # ------------------------------------------------
-    # Input-type helper (Week-7 implementation)
+    # Input-type helper (Week-7)
     # ------------------------------------------------
     def determine_input_type(self, payload: Dict[str, Any]) -> str:
         """
-        Determines whether the incoming payload is
-        text-based or action-based.
-
-        NOTE:
-        Action handling is introduced later (Week-7+).
-        Week-7: Now fully implemented for action handling.
-        
-        Args:
-            payload: Request payload
-        
-        Returns:
-            Input type string ("ACTION" or "TEXT")
+        Determines whether incoming input is text or action-based.
         """
         if "action_type" in payload:
             return "ACTION"
         return "TEXT"
-
-    # ------------------------------------------------
-    # High-level evaluation orchestration (NEW for Week-7)
-    # ------------------------------------------------
-    async def evaluate_step(
-        self,
-        session_id: str,
-        step: str,
-        transcript: Optional[str] = None,
-        aggregated_transcript: Optional[str] = None,
-        action_events: Optional[List[Dict[str, Any]]] = None,
-        student_mcq_answers: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
-        """
-        High-level method to evaluate a step with appropriate context.
-        
-        This is the main entry point for Week-7 evaluation pipeline.
-        
-        Args:
-            session_id: Session identifier
-            step: Step name
-            transcript: Single transcript (legacy)
-            aggregated_transcript: Multi-turn conversation (HISTORY)
-            action_events: Action events (CLEANING/DRESSING)
-            student_mcq_answers: MCQ answers (ASSESSMENT)
-        
-        Returns:
-            Aggregated evaluation feedback
-        """
-        session = self.session_manager.get_session(session_id)
-        if not session:
-            raise ValueError("Session not found")
-
-        scenario_id = session["scenario_id"]
-
-        # ------------------------------------------------
-        # Prepare context based on step type
-        # ------------------------------------------------
-        context = await self.prepare_agent_context(
-            scenario_id=scenario_id,
-            step=step,
-            transcript=transcript,
-            aggregated_transcript=aggregated_transcript,
-            action_events=action_events
-        )
-
-        # ------------------------------------------------
-        # Invoke evaluator agents through coordinator
-        # NOTE: You'll need to update coordinator to accept this context
-        # For now, this is a placeholder showing the intended flow
-        # ------------------------------------------------
-        evaluator_outputs = await self.coordinator.evaluate_with_context(
-            step=step,
-            context=context
-        )
-
-        # ------------------------------------------------
-        # Aggregate and return feedback
-        # ------------------------------------------------
-        return await self.aggregate_evaluations(
-            session_id=session_id,
-            evaluator_outputs=evaluator_outputs,
-            student_mcq_answers=student_mcq_answers
-        )

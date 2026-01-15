@@ -1,4 +1,6 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, Optional
+from datetime import datetime
+
 from app.utils.action_event import ActionEvent
 from app.services.session_manager import SessionManager
 
@@ -6,27 +8,30 @@ from app.services.session_manager import SessionManager
 class ActionEventService:
     """
     Handles ingestion and storage of student action events.
+
+    Week-7:
+    - Feedback-only
+    - No blocking
+    - No enforcement
+    - Safe for noisy VR inputs
     """
 
     def __init__(self, session_manager: SessionManager):
         self.session_manager = session_manager
 
-    def log_action(
+    def record_action(
         self,
         session_id: str,
         action_type: str,
         step: str,
-        metadata: Dict[str, Any] | None = None
+        metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
+
         session = self.session_manager.get_session(session_id)
         if not session:
             raise ValueError("Session not found")
 
-        # Validate step consistency
-        if session["current_step"] != step:
-            raise ValueError(
-                f"Action step mismatch: expected {session['current_step']}, got {step}"
-            )
+        current_step = session["current_step"]
 
         action_event = ActionEvent(
             action_type=action_type,
@@ -40,5 +45,15 @@ class ActionEventService:
 
         session["action_events"].append(action_event.to_dict())
         session["updated_at"] = action_event.timestamp
+
+        # Week-7: Non-blocking mismatch feedback
+        if current_step != step:
+            return {
+                **action_event.to_dict(),
+                "warning": (
+                    f"Action recorded for step '{step}' "
+                    f"while current step is '{current_step}'."
+                )
+            }
 
         return action_event.to_dict()
