@@ -28,7 +28,6 @@ class SessionManager:
     ) -> str:
         session_id = f"sess_{len(self.sessions) + 1}_{int(datetime.now().timestamp())}"
 
-        # ✅ Load scenario once (single source of truth)
         if scenario_metadata is None:
             scenario_metadata = load_scenario(scenario_id)
 
