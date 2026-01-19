@@ -123,10 +123,10 @@ async def run_full_system_test():
     print("--- SCORES ---")
     print(aggregated["scores"])
 
-    # log["steps"].append({
-    #     "step": "history",
-    #     "feedback": aggregated
-    # })
+    log["steps"].append({
+        "step": "history",
+        "feedback": aggregated
+    })
 
     # ==============================
     # ASSESSMENT
@@ -164,10 +164,10 @@ async def run_full_system_test():
         print(f"[{fb['speaker'].upper()} | {fb['category']}]\n{fb['text']}\n")
         assert fb["text"].strip() != ""
 
-    # log["steps"].append({
-    #     "step": "assessment",
-    #     "feedback": aggregated
-    # })
+    log["steps"].append({
+        "step": "assessment",
+        "feedback": aggregated
+    })
 
     # ==============================
     # CLEANING & DRESSING (brief)
@@ -206,10 +206,10 @@ async def run_full_system_test():
             print(f"[{fb['speaker'].upper()} | {fb['category']}]\n{fb['text']}\n")
             assert fb["text"].strip() != ""
 
-        # log["steps"].append({
-        #     "step": step,
-        #     "feedback": aggregated
-        # })
+        log["steps"].append({
+            "step": step,
+            "feedback": aggregated
+        })
 
     log_path = LOG_DIR / f"manual_test_week8_{session_id}.json"
     with open(log_path, "w", encoding="utf-8") as f:

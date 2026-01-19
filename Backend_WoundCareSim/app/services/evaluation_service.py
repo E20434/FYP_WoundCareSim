@@ -199,13 +199,6 @@ class EvaluationService:
             "scores": coordinator_output.get("scores"),
             "readiness": coordinator_output.get("readiness"),
             "feedback": feedback_items,
-
-            # ---- INTERNAL EVIDENCE ----
-            "debug": {
-                "agent_outputs": [
-                    ev.dict() for ev in evaluator_outputs
-                ]
-            }
         }
 
         self.session_manager.store_last_evaluation(

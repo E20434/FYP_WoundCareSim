@@ -1,0 +1,344 @@
+{
+  "scenario_id": "week6_mock_scenario",
+  "student_id": "manual_test_student",
+  "steps": [
+    {
+      "step": "history",
+      "feedback": {
+        "step": "history",
+        "scores": {
+          "agent_scores": {
+            "CommunicationAgent": 0.48,
+            "KnowledgeAgent": 0.9,
+            "ClinicalAgent": 1.0
+          },
+          "composite_score": 0.0
+        },
+        "readiness": null,
+        "feedback": [
+          {
+            "text": "Strengths: Introduced themselves as a nursing student, establishing a professional context., Asked relevant questions about allergies and surgical history, demonstrating an understanding of important patient information. Issues: Did not confirm the patient's identity with a full introduction, which is crucial for safety., Lacked follow-up questions or prompts to gather more detailed information about the patient's medical history. Overall assessment: Partially Appropriate. The student effectively initiated the conversation and asked pertinent questions regarding allergies and surgical history. However, they missed the opportunity to confirm the patient's identity fully, which is essential for establishing trust and ensuring patient safety. Additionally, the interaction could have benefited from more probing questions to gather comprehensive medical history.",
+            "speaker": "system",
+            "category": "communication",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Confirmed patient identity by asking for the name., Inquired about allergies, which is crucial for patient safety., Asked about the patient's surgical history, which is relevant for ongoing care. Overall assessment: Appropriate. The student's approach to taking the patient's history is clinically relevant as it ensures patient safety by identifying allergies and understanding the patient's medical background, which is essential for effective nursing care.",
+            "speaker": "system",
+            "category": "knowledge",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Confirmed patient identity by asking for the name., Inquired about allergies, which is essential for patient safety., Gathered information about the patient's surgical history. Overall assessment: Appropriate. The student performed the history-taking step correctly by confirming the patient's identity, inquiring about allergies, and obtaining relevant surgical history. These actions are crucial for ensuring patient safety and preparing for further care.",
+            "speaker": "system",
+            "category": "clinical",
+            "timing": "post_step"
+          },
+          {
+            "text": "Great! Now that you\u2019ve completed the history, the next step is to conduct the assessment. This involves performing a physical examination of the patient. Start by checking their vital signs, such as blood pressure, heart rate, respiratory rate, and temperature. After that, you can assess different body systems based on the patient's history and any specific concerns they may have mentioned. Make sure to document your findings as you go. Let me know if you need any help with the assessment!",
+            "speaker": "staff_nurse",
+            "category": "clinical",
+            "timing": "post_step"
+          }
+        ],
+        "debug": {
+          "agent_outputs": [
+            {
+              "agent_name": "CommunicationAgent",
+              "step": "history",
+              "strengths": [
+                "Introduced themselves as a nursing student, establishing a professional context.",
+                "Asked relevant questions about allergies and surgical history, demonstrating an understanding of important patient information."
+              ],
+              "issues_detected": [
+                "Did not confirm the patient's identity with a full introduction, which is crucial for safety.",
+                "Lacked follow-up questions or prompts to gather more detailed information about the patient's medical history."
+              ],
+              "explanation": "The student effectively initiated the conversation and asked pertinent questions regarding allergies and surgical history. However, they missed the opportunity to confirm the patient's identity fully, which is essential for establishing trust and ensuring patient safety. Additionally, the interaction could have benefited from more probing questions to gather comprehensive medical history.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.8
+            },
+            {
+              "agent_name": "KnowledgeAgent",
+              "step": "history",
+              "strengths": [
+                "Confirmed patient identity by asking for the name.",
+                "Inquired about allergies, which is crucial for patient safety.",
+                "Asked about the patient's surgical history, which is relevant for ongoing care."
+              ],
+              "issues_detected": [],
+              "explanation": "The student's approach to taking the patient's history is clinically relevant as it ensures patient safety by identifying allergies and understanding the patient's medical background, which is essential for effective nursing care.",
+              "verdict": "Appropriate",
+              "confidence": 0.9
+            },
+            {
+              "agent_name": "ClinicalAgent",
+              "step": "history",
+              "strengths": [
+                "Confirmed patient identity by asking for the name.",
+                "Inquired about allergies, which is essential for patient safety.",
+                "Gathered information about the patient's surgical history."
+              ],
+              "issues_detected": [],
+              "explanation": "The student performed the history-taking step correctly by confirming the patient's identity, inquiring about allergies, and obtaining relevant surgical history. These actions are crucial for ensuring patient safety and preparing for further care.",
+              "verdict": "Appropriate",
+              "confidence": 1.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "assessment",
+      "feedback": {
+        "step": "assessment",
+        "scores": {
+          "agent_scores": {
+            "CommunicationAgent": 0.0,
+            "KnowledgeAgent": 0.0,
+            "ClinicalAgent": 0.42
+          },
+          "composite_score": 0.0
+        },
+        "readiness": null,
+        "feedback": [
+          {
+            "text": "Issues: Lack of detail in assessment communication, No introduction or confirmation of patient identity, Failure to address key assessment components Overall assessment: Inappropriate. The student's response 'Assessment completed.' is overly brief and lacks the necessary detail expected in a nursing assessment. It does not include any specific findings related to the wound, nor does it confirm the patient's identity or provide any context about the assessment process. This lack of thoroughness and clarity can lead to misunderstandings and does not align with the guidelines for effective communication in nursing.",
+            "speaker": "system",
+            "category": "communication",
+            "timing": "post_step"
+          },
+          {
+            "text": "Issues: No specific details provided about the assessment findings such as signs of infection, pain levels, or wound condition., Lack of mention of hand hygiene or sterile principles during the assessment process. Overall assessment: Inappropriate. Understanding and documenting the specifics of the assessment is critical for identifying potential complications such as infection and ensuring appropriate care is provided. This knowledge is essential for patient safety and effective wound management.",
+            "speaker": "system",
+            "category": "knowledge",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Assessment of wound appearance noted as clean edges and minimal serous discharge., Identification of wound location on the left forearm., Recognition of no signs of infection. Issues: No mention of hand hygiene or aseptic technique prior to assessment., Lack of patient history taking regarding allergies, pain levels, and previous complications. Overall assessment: Partially Appropriate. While the assessment of the wound's appearance and condition was correctly noted, the absence of hand hygiene and aseptic technique poses a significant risk to patient safety. These steps are crucial to prevent infection and ensure a sterile environment. Additionally, failing to gather pertinent patient history can lead to complications in wound management and care.",
+            "speaker": "system",
+            "category": "clinical",
+            "timing": "post_step"
+          }
+        ],
+        "debug": {
+          "agent_outputs": [
+            {
+              "agent_name": "CommunicationAgent",
+              "step": "assessment",
+              "strengths": [],
+              "issues_detected": [
+                "Lack of detail in assessment communication",
+                "No introduction or confirmation of patient identity",
+                "Failure to address key assessment components"
+              ],
+              "explanation": "The student's response 'Assessment completed.' is overly brief and lacks the necessary detail expected in a nursing assessment. It does not include any specific findings related to the wound, nor does it confirm the patient's identity or provide any context about the assessment process. This lack of thoroughness and clarity can lead to misunderstandings and does not align with the guidelines for effective communication in nursing.",
+              "verdict": "Inappropriate",
+              "confidence": 0.9
+            },
+            {
+              "agent_name": "KnowledgeAgent",
+              "step": "assessment",
+              "strengths": [],
+              "issues_detected": [
+                "No specific details provided about the assessment findings such as signs of infection, pain levels, or wound condition.",
+                "Lack of mention of hand hygiene or sterile principles during the assessment process."
+              ],
+              "explanation": "Understanding and documenting the specifics of the assessment is critical for identifying potential complications such as infection and ensuring appropriate care is provided. This knowledge is essential for patient safety and effective wound management.",
+              "verdict": "Inappropriate",
+              "confidence": 0.8
+            },
+            {
+              "agent_name": "ClinicalAgent",
+              "step": "assessment",
+              "strengths": [
+                "Assessment of wound appearance noted as clean edges and minimal serous discharge.",
+                "Identification of wound location on the left forearm.",
+                "Recognition of no signs of infection."
+              ],
+              "issues_detected": [
+                "No mention of hand hygiene or aseptic technique prior to assessment.",
+                "Lack of patient history taking regarding allergies, pain levels, and previous complications."
+              ],
+              "explanation": "While the assessment of the wound's appearance and condition was correctly noted, the absence of hand hygiene and aseptic technique poses a significant risk to patient safety. These steps are crucial to prevent infection and ensure a sterile environment. Additionally, failing to gather pertinent patient history can lead to complications in wound management and care.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.7
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "cleaning",
+      "feedback": {
+        "step": "cleaning",
+        "scores": {
+          "agent_scores": {
+            "CommunicationAgent": 0.45,
+            "KnowledgeAgent": 0.42,
+            "ClinicalAgent": 0.48
+          },
+          "composite_score": 0.0
+        },
+        "readiness": null,
+        "feedback": [
+          {
+            "text": "Strengths: Demonstrates awareness of the importance of hand hygiene and PPE., Recognizes the need for wound assessment before cleaning., Understands the procedure for cleaning a wound using sterile saline. Issues: Lacks specific communication with the patient about the procedure., Does not mention how to reassure the patient during the process., Fails to include documentation as a part of the communication process. Overall assessment: Partially Appropriate. The student shows a good understanding of the technical aspects of the cleaning procedure but does not adequately address the communication component with the patient. Effective communication is essential in nursing to ensure patient comfort and understanding, especially during procedures. The student should focus on how to explain the procedure to the patient and provide reassurance, as well as the importance of documenting findings.",
+            "speaker": "system",
+            "category": "communication",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Understanding of the importance of hand hygiene and PPE in preventing contamination., Awareness of the need to assess the wound for signs of infection before cleaning. Issues: Lack of detail on the specific cleaning technique to be used (e.g., sterile saline application)., No mention of the order of cleaning (from cleanest to least clean area)., Failure to address documentation and communication post-cleaning. Overall assessment: Partially Appropriate. Understanding and applying proper cleaning techniques is critical in preventing infection and promoting healing in surgical wounds. Adhering to sterile principles ensures patient safety and effective care.",
+            "speaker": "system",
+            "category": "knowledge",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Performed hand hygiene before starting the cleaning process., Used aseptic technique during the cleaning procedure. Issues: Did not mention the use of Personal Protective Equipment (PPE) such as gloves., No indication of wound assessment for signs of infection prior to cleaning. Overall assessment: Partially Appropriate. While hand hygiene and aseptic technique are critical for patient safety, the absence of PPE increases the risk of contamination. Additionally, failing to assess the wound for signs of infection could lead to overlooking potential complications, which is essential for appropriate wound management.",
+            "speaker": "system",
+            "category": "clinical",
+            "timing": "post_step"
+          }
+        ],
+        "debug": {
+          "agent_outputs": [
+            {
+              "agent_name": "CommunicationAgent",
+              "step": "cleaning",
+              "strengths": [
+                "Demonstrates awareness of the importance of hand hygiene and PPE.",
+                "Recognizes the need for wound assessment before cleaning.",
+                "Understands the procedure for cleaning a wound using sterile saline."
+              ],
+              "issues_detected": [
+                "Lacks specific communication with the patient about the procedure.",
+                "Does not mention how to reassure the patient during the process.",
+                "Fails to include documentation as a part of the communication process."
+              ],
+              "explanation": "The student shows a good understanding of the technical aspects of the cleaning procedure but does not adequately address the communication component with the patient. Effective communication is essential in nursing to ensure patient comfort and understanding, especially during procedures. The student should focus on how to explain the procedure to the patient and provide reassurance, as well as the importance of documenting findings.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.75
+            },
+            {
+              "agent_name": "KnowledgeAgent",
+              "step": "cleaning",
+              "strengths": [
+                "Understanding of the importance of hand hygiene and PPE in preventing contamination.",
+                "Awareness of the need to assess the wound for signs of infection before cleaning."
+              ],
+              "issues_detected": [
+                "Lack of detail on the specific cleaning technique to be used (e.g., sterile saline application).",
+                "No mention of the order of cleaning (from cleanest to least clean area).",
+                "Failure to address documentation and communication post-cleaning."
+              ],
+              "explanation": "Understanding and applying proper cleaning techniques is critical in preventing infection and promoting healing in surgical wounds. Adhering to sterile principles ensures patient safety and effective care.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.7
+            },
+            {
+              "agent_name": "ClinicalAgent",
+              "step": "cleaning",
+              "strengths": [
+                "Performed hand hygiene before starting the cleaning process.",
+                "Used aseptic technique during the cleaning procedure."
+              ],
+              "issues_detected": [
+                "Did not mention the use of Personal Protective Equipment (PPE) such as gloves.",
+                "No indication of wound assessment for signs of infection prior to cleaning."
+              ],
+              "explanation": "While hand hygiene and aseptic technique are critical for patient safety, the absence of PPE increases the risk of contamination. Additionally, failing to assess the wound for signs of infection could lead to overlooking potential complications, which is essential for appropriate wound management.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "dressing",
+      "feedback": {
+        "step": "dressing",
+        "scores": {
+          "agent_scores": {
+            "CommunicationAgent": 0.51,
+            "KnowledgeAgent": 0.42,
+            "ClinicalAgent": 0.48
+          },
+          "composite_score": 0.0
+        },
+        "readiness": null,
+        "feedback": [
+          {
+            "text": "Strengths: Clear understanding of the dressing procedure steps, Emphasis on hand hygiene and PPE usage, Recognition of the importance of wound assessment Issues: Lack of direct communication with the patient, No mention of patient education regarding aftercare Overall assessment: Partially Appropriate. The student demonstrates a solid grasp of the procedural steps involved in dressing a wound, highlighting critical actions such as hand hygiene and PPE. However, there is a noticeable absence of direct communication with the patient, which is essential for patient-centered care. Additionally, the student did not address the importance of educating the patient about aftercare, which is crucial for recovery and preventing complications.",
+            "speaker": "system",
+            "category": "communication",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Identified the importance of hand hygiene to prevent infection., Recognized the need for personal protective equipment (PPE) before handling the wound. Issues: Did not mention wound assessment for signs of infection before dressing change., Lacked detail on the cleaning technique, specifically the use of sterile saline and the direction of cleaning. Overall assessment: Partially Appropriate. Understanding the steps involved in dressing changes is crucial for preventing infections and promoting healing. Proper wound assessment and cleaning techniques are essential to minimize the risk of complications, especially in patients with underlying conditions like diabetes, which can impair healing.",
+            "speaker": "system",
+            "category": "knowledge",
+            "timing": "post_step"
+          },
+          {
+            "text": "Strengths: Performed hand hygiene before the procedure., Assessed the wound for signs of infection, confirming no signs present. Issues: Did not wear appropriate personal protective equipment (PPE) such as gloves., Cleaning method not specified; unclear if sterile saline was used or if the cleaning direction was correct. Overall assessment: Partially Appropriate. While hand hygiene and wound assessment were performed correctly, the lack of PPE increases the risk of contamination. Additionally, the cleaning method is crucial to prevent infection, and without clarity on this step, patient safety may be compromised.",
+            "speaker": "system",
+            "category": "clinical",
+            "timing": "post_step"
+          }
+        ],
+        "debug": {
+          "agent_outputs": [
+            {
+              "agent_name": "CommunicationAgent",
+              "step": "dressing",
+              "strengths": [
+                "Clear understanding of the dressing procedure steps",
+                "Emphasis on hand hygiene and PPE usage",
+                "Recognition of the importance of wound assessment"
+              ],
+              "issues_detected": [
+                "Lack of direct communication with the patient",
+                "No mention of patient education regarding aftercare"
+              ],
+              "explanation": "The student demonstrates a solid grasp of the procedural steps involved in dressing a wound, highlighting critical actions such as hand hygiene and PPE. However, there is a noticeable absence of direct communication with the patient, which is essential for patient-centered care. Additionally, the student did not address the importance of educating the patient about aftercare, which is crucial for recovery and preventing complications.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.85
+            },
+            {
+              "agent_name": "KnowledgeAgent",
+              "step": "dressing",
+              "strengths": [
+                "Identified the importance of hand hygiene to prevent infection.",
+                "Recognized the need for personal protective equipment (PPE) before handling the wound."
+              ],
+              "issues_detected": [
+                "Did not mention wound assessment for signs of infection before dressing change.",
+                "Lacked detail on the cleaning technique, specifically the use of sterile saline and the direction of cleaning."
+              ],
+              "explanation": "Understanding the steps involved in dressing changes is crucial for preventing infections and promoting healing. Proper wound assessment and cleaning techniques are essential to minimize the risk of complications, especially in patients with underlying conditions like diabetes, which can impair healing.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.7
+            },
+            {
+              "agent_name": "ClinicalAgent",
+              "step": "dressing",
+              "strengths": [
+                "Performed hand hygiene before the procedure.",
+                "Assessed the wound for signs of infection, confirming no signs present."
+              ],
+              "issues_detected": [
+                "Did not wear appropriate personal protective equipment (PPE) such as gloves.",
+                "Cleaning method not specified; unclear if sterile saline was used or if the cleaning direction was correct."
+              ],
+              "explanation": "While hand hygiene and wound assessment were performed correctly, the lack of PPE increases the risk of contamination. Additionally, the cleaning method is crucial to prevent infection, and without clarity on this step, patient safety may be compromised.",
+              "verdict": "Partially Appropriate",
+              "confidence": 0.8
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
