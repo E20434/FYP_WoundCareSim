@@ -4,11 +4,12 @@ from app.core.step_guidance import STEP_GUIDANCE
 
 class StaffNurseAgent(BaseAgent):
     """
-    Conversational supervising nurse (GUIDANCE ONLY).
+    Conversational supervising nurse (GUIDANCE ONLY + VERIFICATION).
 
     - Explains the CURRENT step by default
     - Explains the NEXT step ONLY if the student indicates they are finished
-    - Does NOT evaluate
+    - VERIFIES solutions and dressing packets when asked
+    - Does NOT evaluate performance
     - Does NOT approve or block steps
     - Does NOT decide when a step ends
     """
@@ -23,6 +24,18 @@ class StaffNurseAgent(BaseAgent):
         "move on"
     ]
 
+    VERIFICATION_KEYWORDS = [
+        "verify",
+        "check",
+        "confirm",
+        "is this correct",
+        "is this right",
+        "can you check",
+        "look at this",
+        "expired",
+        "expiration"
+    ]
+
     def __init__(self):
         super().__init__()
 
@@ -34,6 +47,13 @@ class StaffNurseAgent(BaseAgent):
         student_lower = student_input.lower()
         return any(keyword in student_lower for keyword in self.FINISH_KEYWORDS)
 
+    def _is_verification_request(self, student_input: str) -> bool:
+        """
+        Detect if student is asking for verification of solution/dressing.
+        """
+        student_lower = student_input.lower()
+        return any(keyword in student_lower for keyword in self.VERIFICATION_KEYWORDS)
+
     async def respond(
         self,
         student_input: str,
@@ -42,34 +62,87 @@ class StaffNurseAgent(BaseAgent):
     ) -> str:
 
         is_finishing = self._is_student_finishing(student_input)
+        is_verification = self._is_verification_request(student_input)
 
         current_guidance = STEP_GUIDANCE.get(current_step, "")
         next_guidance = STEP_GUIDANCE.get(next_step, "") if next_step else ""
 
-        system_prompt = (
-            "You are a supervising staff nurse guiding a nursing student.\n\n"
-            "STRICT ROLE RULES:\n"
-            "- You provide guidance only.\n"
-            "- You do NOT evaluate performance.\n"
-            "- You do NOT say whether the student did well or poorly.\n"
-            "- You do NOT grant permission to proceed.\n"
-            "- You do NOT decide when a step is complete.\n"
-            "- The student controls step progression.\n\n"
-            "Guidance behavior:\n"
-            "- If the student asks what to do now, explain the CURRENT step.\n"
-            "- If the student indicates they are finished or asks what is next, "
-            "explain the NEXT step.\n"
-            "- Keep responses short, clear, and spoken-friendly.\n"
-        )
+        # VERIFICATION MODE (for cleaning/dressing steps)
+        if is_verification and current_step in ["cleaning", "dressing"]:
+            system_prompt = (
+                "You are a supervising staff nurse verifying materials with a nursing student.\n\n"
+                "VERIFICATION ROLE:\n"
+                "- The student is showing you a solution bottle or dressing packet.\n"
+                "- Your job is to verify it is safe to use based on what they tell you.\n"
+                "- The student should state: name/type, expiration date, package integrity.\n"
+                "- Listen to what the student says about the item.\n"
+                "- If student provides complete details, give clear approval.\n"
+                "- If student mentions a problem (expired, damaged), advise getting replacement.\n"
+                "- If student doesn't provide details, ask them to state the information.\n\n"
+                "RESPONSE STYLE:\n"
+                "- Be supportive and professional.\n"
+                "- Use simple, clear language.\n"
+                "- Acknowledge what the student stated.\n"
+                "- Give specific feedback: 'Normal Saline 0.9%, expires [date], bottle intact - looks good.'\n"
+                "- End with clear approval: 'You may use it' or 'You can proceed.'\n\n"
+                "EXPECTED MATERIALS:\n"
+                "- CLEANING step: Normal Saline 0.9% solution + sterile dressing packet\n"
+                "- DRESSING step: Sterile dressing packet\n\n"
+                "VERIFICATION PROCESS:\n"
+                "- If student states complete info → Acknowledge and approve\n"
+                "- If student provides incomplete info → Ask for missing details\n"
+                "- If student mentions 'expired' or 'damaged' → Instruct to get replacement\n"
+                "- Assume items are correct if student states them properly\n"
+            )
 
-        if is_finishing and next_guidance:
+            user_prompt = (
+                f"CURRENT STEP: {current_step}\n"
+                f"STUDENT REQUEST:\n{student_input}\n\n"
+                f"The student is asking you to verify materials.\n"
+                "Respond as a staff nurse checking what the student tells you and giving approval or feedback."
+            )
+
+        # FINISHING MODE (explaining next step)
+        elif is_finishing and next_guidance:
+            system_prompt = (
+                "You are a supervising staff nurse guiding a nursing student.\n\n"
+                "STRICT ROLE RULES:\n"
+                "- You provide guidance only.\n"
+                "- You do NOT evaluate performance.\n"
+                "- You do NOT say whether the student did well or poorly.\n"
+                "- You do NOT grant permission to proceed.\n"
+                "- You do NOT decide when a step is complete.\n"
+                "- The student controls step progression.\n\n"
+                "Guidance behavior:\n"
+                "- Student indicated they are finished with current step.\n"
+                "- Explain the NEXT step briefly.\n"
+                "- Keep responses short, clear, and spoken-friendly.\n"
+            )
+
             user_prompt = (
                 f"CURRENT STEP: {current_step}\n"
                 f"NEXT STEP: {next_step}\n"
                 f"NEXT STEP GUIDANCE:\n{next_guidance}\n\n"
                 f"STUDENT MESSAGE:\n{student_input}\n"
             )
+
+        # GUIDANCE MODE (default - explaining current step)
         else:
+            system_prompt = (
+                "You are a supervising staff nurse guiding a nursing student.\n\n"
+                "STRICT ROLE RULES:\n"
+                "- You provide guidance only.\n"
+                "- You do NOT evaluate performance.\n"
+                "- You do NOT say whether the student did well or poorly.\n"
+                "- You do NOT grant permission to proceed.\n"
+                "- You do NOT decide when a step is complete.\n"
+                "- The student controls step progression.\n\n"
+                "Guidance behavior:\n"
+                "- Student is asking about the CURRENT step.\n"
+                "- Explain what they should be doing now.\n"
+                "- Keep responses short, clear, and spoken-friendly.\n"
+            )
+
             user_prompt = (
                 f"CURRENT STEP: {current_step}\n"
                 f"CURRENT STEP GUIDANCE:\n{current_guidance}\n\n"

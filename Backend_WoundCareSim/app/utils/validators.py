@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 
 # -------------------------------
-# Scenario Validation (Week-3)
+# Scenario Validation
 # -------------------------------
 
 REQUIRED_SCENARIO_FIELDS = [
@@ -10,7 +10,6 @@ REQUIRED_SCENARIO_FIELDS = [
     "patient_history",
     "wound_details",
     "assessment_questions",
-    "evaluation_criteria",
     "vector_store_namespace"
 ]
 
@@ -18,6 +17,7 @@ REQUIRED_SCENARIO_FIELDS = [
 def validate_scenario_payload(data: Dict[str, Any]) -> None:
     """
     Validates scenario metadata before storing or loading.
+    Core validation: patient context + MCQ questions only
     """
     missing = [f for f in REQUIRED_SCENARIO_FIELDS if f not in data]
     if missing:
@@ -27,9 +27,6 @@ def validate_scenario_payload(data: Dict[str, Any]) -> None:
         raise ValueError("assessment_questions must be a list")
 
     validate_mcq_list(data["assessment_questions"])
-
-    if not isinstance(data["evaluation_criteria"], dict):
-        raise ValueError("evaluation_criteria must be a dictionary")
 
 
 # -------------------------------

@@ -1,7 +1,3 @@
-// ==========================================
-// VR Nursing Education System - Test UI
-// ==========================================
-
 // Configuration
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -301,13 +297,13 @@ function loadCleaningActions() {
     const container = document.getElementById('cleaningActions');
     
     const cleaningActions = [
-        { type: 'handwash', label: 'Wash Hands' },
-        { type: 'wear_gloves', label: 'Put on Gloves' },
-        { type: 'prepare_solution', label: 'Prepare Cleaning Solution' },
-        { type: 'clean_wound_center', label: 'Clean Wound Center' },
-        { type: 'clean_wound_outward', label: 'Clean Outward from Center' },
-        { type: 'dispose_materials', label: 'Dispose of Materials' },
-        { type: 'remove_gloves', label: 'Remove Gloves' }
+        { type: 'handwash_1', label: '1. Perform Medical Hand Washing (First Time)' },
+        { type: 'arrange_trolley', label: '2. Arrange Dressing Trolley' },
+        { type: 'handwash_2', label: '3. Perform Medical Hand Washing (Second Time)' },
+        // Step 4: ASK staff nurse to verify cleaning solution (done via chat)
+        { type: 'bring_trolley', label: '5. Bring Trolley to Patient Area' },
+        { type: 'clean_center_to_periphery', label: '6. Clean Wound (Center to Periphery)' },
+        { type: 'dispose_materials', label: '7. Dispose Contaminated Materials' }
     ];
     
     container.innerHTML = '';
@@ -316,7 +312,7 @@ function loadCleaningActions() {
         button.className = 'action-btn';
         button.onclick = () => recordAction(action.type, 'cleaning');
         button.innerHTML = `
-            <span class="checkmark">✔</span>
+            <span class="checkmark">âœ”</span>
             <span>${action.label}</span>
         `;
         container.appendChild(button);
@@ -361,12 +357,10 @@ function loadDressingActions() {
     const container = document.getElementById('dressingActions');
     
     const dressingActions = [
-        { type: 'select_dressing', label: 'Select Appropriate Dressing' },
-        { type: 'prepare_dressing', label: 'Prepare Dressing' },
-        { type: 'apply_dressing', label: 'Apply Dressing to Wound' },
-        { type: 'secure_tape', label: 'Secure with Tape' },
-        { type: 'check_fit', label: 'Check Dressing Fit' },
-        { type: 'document', label: 'Document Procedure' }
+        { type: 'handwash_before', label: '1. Perform Hand Washing (Before Dressing)' },
+        // Step 2: ASK staff nurse to verify sterile dressing packet (done via chat)
+        { type: 'apply_dressing', label: '3. Apply Dressing to Wound' },
+        { type: 'handwash_after', label: '4. Perform Hand Washing (After Dressing)' }
     ];
     
     container.innerHTML = '';
@@ -375,7 +369,7 @@ function loadDressingActions() {
         button.className = 'action-btn';
         button.onclick = () => recordAction(action.type, 'dressing');
         button.innerHTML = `
-            <span class="checkmark">✔</span>
+            <span class="checkmark">âœ”</span>
             <span>${action.label}</span>
         `;
         container.appendChild(button);

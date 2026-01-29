@@ -1,0 +1,175 @@
+HISTORY TAKING GUIDELINES
+For Post-Operative Wound Care
+
+================================================================================
+PURPOSE
+================================================================================
+
+Gather essential patient information before performing wound care to ensure 
+safe and appropriate treatment.
+
+================================================================================
+PATIENT IDENTIFICATION
+================================================================================
+
+FIRST STEP - Always verify patient identity:
+• Ask patient to state their full name
+• Verify date of birth
+• Check patient wristband/ID
+• Never assume identity based on bed location
+
+WHY: Prevents treating the wrong patient (serious safety error)
+
+================================================================================
+ALLERGY ASSESSMENT
+================================================================================
+
+MANDATORY - Ask about allergies:
+
+Questions to ask:
+• "Do you have any allergies to medications?"
+• "Are you allergic to penicillin or other antibiotics?"
+• "Any allergies to tape, adhesives, or latex?"
+• "Have you had reactions to dressings or antiseptics?"
+
+What to document:
+• The substance (e.g., Penicillin)
+• Type of reaction (rash, swelling, difficulty breathing)
+• When it occurred
+
+CRITICAL ALLERGIES:
+• Antibiotic allergies (especially penicillin)
+• Latex allergy (affects glove selection)
+• Adhesive/tape allergies (affects dressing choice)
+
+WHY: Prevents allergic reactions during wound care
+
+================================================================================
+PAIN ASSESSMENT
+================================================================================
+
+Pain Scale (0-10):
+• 0 = No pain
+• 1-3 = Mild pain
+• 4-6 = Moderate pain
+• 7-10 = Severe pain
+
+Questions to ask:
+• "Where is your pain located?"
+• "On a scale of 0-10, how would you rate your pain?"
+• "Can you describe the pain?" (sharp, dull, throbbing, burning)
+• "Is the pain constant or does it come and go?"
+• "Have you taken pain medication today?"
+
+RED FLAGS - Report immediately:
+• Sudden severe pain at wound site
+• Pain score above 7
+• New or worsening pain
+
+WHY: Pain assessment ensures patient comfort and can indicate complications
+
+================================================================================
+MEDICATION HISTORY
+================================================================================
+
+Questions to ask:
+• "What medications are you currently taking?"
+• "Have you taken your medications today?"
+• "Are you taking any blood thinners?"
+
+Important medications to note:
+• Blood thinners (warfarin, aspirin) - increased bleeding risk
+• Steroids (prednisone) - slower wound healing
+• Blood pressure medications - patient should take as scheduled
+
+WHY: Medications can affect wound healing and procedure safety
+
+================================================================================
+SURGICAL HISTORY
+================================================================================
+
+Questions to ask:
+• "What surgery did you have?"
+• "When was your surgery?" (which post-operative day)
+• "Who was your surgeon?"
+• "Where is the surgical wound located?"
+
+Information needed:
+• Type of surgery performed
+• Date of surgery
+• Location of surgical incision
+• Type of wound closure (sutures, staples, etc.)
+
+WHY: Understanding the surgery guides appropriate wound care
+
+================================================================================
+MEDICAL HISTORY
+================================================================================
+
+Ask about conditions that affect wound healing:
+• Diabetes - affects healing, increases infection risk
+• High blood pressure - affects circulation
+• Smoking - impairs healing
+
+WHY: These conditions require extra care during wound management
+
+================================================================================
+COMMUNICATION BEST PRACTICES
+================================================================================
+
+DO:
+• Introduce yourself: "I'm [Name], a nursing student"
+• Use simple, clear language (not medical jargon)
+• Make eye contact and listen actively
+• Ask open-ended questions: "Tell me about your pain"
+• Show empathy: "I understand this may be uncomfortable"
+• Explain what you will do: "I'm going to check your wound"
+• Ask if patient has questions
+
+DON'T:
+• Rush the conversation
+• Use complicated medical terms
+• Interrupt the patient
+• Dismiss patient concerns
+• Assume the patient understands
+
+================================================================================
+WHAT TO DOCUMENT
+================================================================================
+
+Record:
+✓ Patient name and ID verified
+✓ Allergies (type and reaction)
+✓ Pain location and score (0-10)
+✓ Current medications
+✓ Surgery type and date
+✓ Relevant medical history
+✓ Any patient concerns
+
+================================================================================
+SUMMARY CHECKLIST
+================================================================================
+
+Before proceeding to wound care, confirm you have:
+
+☑ Verified patient identity
+☑ Asked about allergies
+☑ Assessed pain level
+☑ Reviewed current medications
+☑ Confirmed surgical details
+☑ Noted medical history
+☑ Answered patient questions
+☑ Documented all information
+
+================================================================================
+KEY PRINCIPLES
+================================================================================
+
+1. SAFETY FIRST - Always verify identity and allergies
+2. LISTEN to the patient - They know their body best
+3. BE PROFESSIONAL - Maintain respectful communication
+4. DOCUMENT EVERYTHING - If not documented, it wasn't done
+
+================================================================================
+END OF GUIDELINES
+================================================================================

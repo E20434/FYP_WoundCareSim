@@ -11,7 +11,7 @@
         <!-- Header -->
         <header class="header">
             <h1>VR Nursing Education System</h1>
-            <p class="subtitle">Backend Testing Interface</p>
+            <p class="subtitle">Backend Testing Interface - Week 9 (With Verification)</p>
         </header>
 
         <!-- Session Info Bar -->
@@ -48,7 +48,7 @@
                 </button>
                 
                 <div class="info-box">
-                    <strong>Note:</strong> This is a test interface to verify backend functionality before VR/React integration.
+                    <strong>Note:</strong> This Test UI now includes staff nurse verification for CLEANING and DRESSING steps.
                 </div>
             </div>
         </div>
@@ -157,7 +157,7 @@
         <div class="screen" id="cleaningScreen" style="display: none;">
             <div class="step-header">
                 <h2>Step 3: Wound Cleaning</h2>
-                <p>Perform the wound cleaning procedure by clicking the action buttons.</p>
+                <p>Perform hand washing, verify materials with staff nurse, and clean the wound.</p>
             </div>
 
             <div class="main-content">
@@ -167,6 +167,16 @@
                     <div class="actions-counter">
                         <strong>Actions Recorded:</strong> <span id="cleaningCounter">0</span>
                     </div>
+                    
+                    <div class="verification-reminder">
+                        <strong>⚠️ IMPORTANT:</strong> Ask staff nurse to verify materials (Step 4):
+                        <ul>
+                            <li>Normal saline solution</li>
+                            <li>Sterile dressing packet</li>
+                        </ul>
+                        Use the staff nurse chat below before bringing trolley to patient.
+                    </div>
+                    
                     <div class="actions-grid" id="cleaningActions">
                         <!-- Action buttons will be loaded here -->
                     </div>
@@ -174,15 +184,24 @@
 
                 <!-- Staff Nurse -->
                 <div class="card">
-                    <h3>Staff Nurse Guidance</h3>
+                    <h3>Staff Nurse (Guidance & Verification)</h3>
                     <div class="staff-nurse-response" id="staffNurseCleaning">
-                        <p class="text-muted">Ask the staff nurse for guidance anytime...</p>
+                        <p class="text-muted">Ask for verification of solutions and dressings...</p>
                     </div>
+                    
+                    <div class="verification-examples">
+                        <strong>Example verification requests:</strong>
+                        <ul>
+                            <li>"Could you verify this normal saline solution? It's Normal Saline 0.9%, expires March 2026, bottle intact."</li>
+                            <li>"Can you check this sterile dressing packet? Expires April 2026, package sealed."</li>
+                        </ul>
+                    </div>
+                    
                     <div class="input-group">
                         <input 
                             type="text" 
                             id="nurseQuestionCleaning" 
-                            placeholder="Ask staff nurse..."
+                            placeholder="Ask staff nurse to verify or for guidance..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
                         <button class="btn btn-secondary" onclick="askStaffNurse()">
@@ -203,7 +222,7 @@
         <div class="screen" id="dressingScreen" style="display: none;">
             <div class="step-header">
                 <h2>Step 4: Wound Dressing</h2>
-                <p>Apply the wound dressing by clicking the action buttons.</p>
+                <p>Perform hand washing, verify dressing with staff nurse, and apply the dressing.</p>
             </div>
 
             <div class="main-content">
@@ -213,6 +232,15 @@
                     <div class="actions-counter">
                         <strong>Actions Recorded:</strong> <span id="dressingCounter">0</span>
                     </div>
+                    
+                    <div class="verification-reminder">
+                        <strong>⚠️ IMPORTANT:</strong> Ask staff nurse to verify (Step 2):
+                        <ul>
+                            <li>Sterile dressing packet</li>
+                        </ul>
+                        Use the staff nurse chat below before applying dressing.
+                    </div>
+                    
                     <div class="actions-grid" id="dressingActions">
                         <!-- Action buttons will be loaded here -->
                     </div>
@@ -220,15 +248,23 @@
 
                 <!-- Staff Nurse -->
                 <div class="card">
-                    <h3>Staff Nurse Guidance</h3>
+                    <h3>Staff Nurse (Guidance & Verification)</h3>
                     <div class="staff-nurse-response" id="staffNurseDressing">
-                        <p class="text-muted">Ask the staff nurse for guidance anytime...</p>
+                        <p class="text-muted">Ask for verification of dressing packet...</p>
                     </div>
+                    
+                    <div class="verification-examples">
+                        <strong>Example verification request:</strong>
+                        <ul>
+                            <li>"Could you verify this sterile dressing packet? It's a sterile dressing, expires May 2026, package intact."</li>
+                        </ul>
+                    </div>
+                    
                     <div class="input-group">
                         <input 
                             type="text" 
                             id="nurseQuestionDressing" 
-                            placeholder="Ask staff nurse..."
+                            placeholder="Ask staff nurse to verify or for guidance..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
                         <button class="btn btn-secondary" onclick="askStaffNurse()">

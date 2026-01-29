@@ -285,9 +285,11 @@ def answer_mcq_question(payload: MCQAnswerInput):
 @router.post("/step")
 async def run_step(payload: StepInput):
     """
-    Unified step handler (Week-9 FINAL).
+    Unified step handler (Week-9 FINAL - ASSESSMENT Agent Evaluation Removed).
     
     Handles step completion and evaluation for all steps.
+    
+    ASSESSMENT step now uses MCQ-only evaluation (no agents).
     """
     session = session_manager.get_session(payload.session_id)
     if not session:
@@ -333,20 +335,10 @@ async def run_step(payload: StepInput):
         )
 
     elif current_step == Step.ASSESSMENT.value:
-        # Use stored MCQ answers from session
-        mcq_answers = session.get("mcq_answers", payload.student_mcq_answers or {})
-        
-        # Pass empty string if no answers, so KnowledgeAgent can detect it
-        assessment_input = "MCQ Assessment completed" if mcq_answers else ""
-        
-        evaluator_outputs.append(
-            await knowledge_agent.evaluate(
-                current_step=current_step,
-                student_input=assessment_input,
-                scenario_metadata=context["scenario_metadata"],
-                rag_response=context["rag_context"]
-            )
-        )
+        # ASSESSMENT step uses MCQ-only evaluation (no agents)
+        # Evaluator outputs remain empty for this step
+        # MCQ evaluation is handled separately in aggregate_evaluations
+        pass
 
     else:  # CLEANING / DRESSING
         evaluator_outputs.append(

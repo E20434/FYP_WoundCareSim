@@ -1,83 +1,99 @@
 {
-  "scenario_id": "week6_mock_scenario",
-  "scenario_title": "Post-Operative Left Forearm Wound Care",
+  "scenario_id": "scenario_001",
+  "scenario_title": "Post-Operative Clean Surgical Wound – Left Forearm",
+
   "patient_history": {
-    "name": "John Doe",
-    "age": 45,
+    "name": "Mr. Sunil Perera",
+    "age": 52,
     "gender": "Male",
     "medical_history": [
-      "Type 2 Diabetes",
       "Hypertension"
     ],
     "allergies": [
       "Penicillin"
     ],
+    "current_medications": [
+      "Amlodipine 5mg daily"
+    ],
     "surgery_details": {
-      "procedure": "Minor forearm surgery",
-      "date": "2025-01-01",
-      "surgeon": "Dr. Smith"
-    }
+      "procedure": "Open reduction and internal fixation of left forearm fracture",
+      "date": "2025-01-10",
+      "surgeon": "Dr. K. Fernando"
+    },
+    "pain_level": "Mild pain at the surgical site"
   },
+
   "wound_details": {
     "location": "Left forearm",
-    "wound_type": "Surgically clean wound",
-    "appearance": "Clean edges, minimal serous discharge",
-    "signs_of_infection": false
+    "wound_type": "Clean surgical wound",
+    "appearance": "Sutured incision with no visible discharge"
   },
-  "required_conversation_points": [
-    "Confirm patient identity",
-    "Ask about allergies",
-    "Explain wound care procedure",
-    "Ask about pain level"
-  ],
+
   "assessment_questions": [
     {
       "id": "q1",
-      "question": "What should the nurse do first before beginning wound care?",
+      "question": "What is the type of wound shown in the scenario?",
       "options": [
-        "Remove the old dressing",
-        "Wash hands",
-        "Apply antiseptic",
-        "Inspect the wound"
+        "Surgical wound",
+        "Trauma wound",
+        "Burn",
+        "Infected wound"
       ],
-      "correct_answer": "Wash hands"
+      "correct_answer": "Surgical wound",
+      "explanation": "A surgical wound is intentionally created under sterile conditions during a medical procedure. The wound in this scenario has clean edges and resulted from surgery, classifying it as a clean surgical wound."
     },
     {
       "id": "q2",
-      "question": "Which sign may indicate wound infection?",
+      "question": "What is the anatomical location of the wound?",
       "options": [
-        "Dry wound surface",
-        "Redness and warmth",
-        "No pain",
-        "Closed wound edges"
+        "Anterior aspect of the right lower leg",
+        "Posterior aspect of the right thigh",
+        "Lateral side of the left ankle",
+        "External surface of the left forearm"
       ],
-      "correct_answer": "Redness and warmth"
+      "correct_answer": "External surface of the left forearm",
+      "explanation": "The wound is located on the external surface of the left forearm, which is a common site for surgical incisions related to orthopedic procedures."
+    },
+    {
+      "id": "q3",
+      "question": "What is the exudate amount when the primary dressing is unmarked?",
+      "options": [
+        "Dry",
+        "Moist",
+        "Wet",
+        "Saturated"
+      ],
+      "correct_answer": "Dry",
+      "explanation": "An unmarked primary dressing indicates there is no visible wound exudate, which is documented as a dry wound."
+    },
+    {
+      "id": "q4",
+      "question": "What is the exudate type when the fluid is clear or straw-coloured?",
+      "options": [
+        "Serous",
+        "Haemoserous",
+        "Sanguineous",
+        "Purulent"
+      ],
+      "correct_answer": "Serous",
+      "explanation": "Serous exudate is clear or straw-coloured and is commonly seen in healing, non-infected wounds."
+    },
+    {
+      "id": "q5",
+      "question": "Which of the following describes normal exudate consistency?",
+      "options": [
+        "High viscosity (thick and sticky)",
+        "Low viscosity (thin and runny)",
+        "Normal (serous)",
+        "Other"
+      ],
+      "correct_answer": "Low viscosity (thin and runny)",
+      "explanation": "Normal wound exudate typically has a low viscosity, appearing thin and runny, which is consistent with serous fluid."
     }
   ],
-  "evaluation_criteria": {
-    "HISTORY": [
-      "Introduces self clearly",
-      "Confirms patient identity",
-      "Explains procedure",
-      "Asks about allergies and pain"
-    ],
-    "ASSESSMENT": [
-      "Identifies wound characteristics",
-      "Recognizes signs of infection",
-      "Answers MCQs correctly"
-    ],
-    "CLEANING": [
-      "Performs hand hygiene",
-      "Uses aseptic technique",
-      "Cleans wound correctly"
-    ],
-    "DRESSING": [
-      "Applies sterile dressing",
-      "Secures dressing properly",
-      "Provides patient instructions"
-    ]
-  },
-  "vector_store_namespace": "week6_mock_scenario",
-  "created_by": "system_test",
-  "created_at": "2025-01-05T00:00:00Z"
+
+  "vector_store_namespace": "scenario_001",
+
+  "created_by": "system",
+  "created_at": "2025-01-20T10:00:00Z"
 }

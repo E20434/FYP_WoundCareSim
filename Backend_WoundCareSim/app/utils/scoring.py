@@ -22,9 +22,8 @@ STEP_WEIGHTS = {
         "ClinicalAgent": 0.1,
     },
     "assessment": {
-        "CommunicationAgent": 0.3,
-        "KnowledgeAgent": 0.7,
-        "ClinicalAgent": 0.0,
+        # ASSESSMENT uses MCQ-only evaluation (no agent weights)
+        # No evaluator agents run for this step
     },
     "cleaning": {
         "CommunicationAgent": 0.1,
@@ -62,11 +61,22 @@ def aggregate_scores(
     - No thresholds
     - No readiness decisions
     - No safety blocking
+    
+    Week-9 Update:
+    - ASSESSMENT step has no agents, so returns empty agent_scores
+    - MCQ score is handled separately in MCQEvaluator
     """
 
     weights = STEP_WEIGHTS.get(current_step, {})
     agent_scores: Dict[str, float] = {}
     composite_score = 0.0
+
+    # If no evaluations (e.g., ASSESSMENT step), return empty scores
+    if not evaluations:
+        return {
+            "agent_scores": {},
+            "step_quality_indicator": 0.0,
+        }
 
     for ev in evaluations:
         score = score_single_evaluation(ev)
