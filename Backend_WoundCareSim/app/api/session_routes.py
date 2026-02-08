@@ -82,12 +82,23 @@ class ActionInput(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
-class VerifyMaterialInput(BaseModel):
-    session_id: str
-    material_type: str  # "solution" or "dressing"
-    material_name: str
-    expiry_date: str
-    package_condition: str  # "intact", "damaged", etc.
+# -------------------------------------------------
+# Helper Functions
+# -------------------------------------------------
+
+def is_action_already_performed(session: dict, action_type: str) -> bool:
+    """
+    Check if an action has already been performed in this session.
+    
+    Args:
+        session: Session dictionary
+        action_type: Action type to check
+    
+    Returns:
+        True if action already performed, False otherwise
+    """
+    action_events = session.get("action_events", [])
+    return any(event["action_type"] == action_type for event in action_events)
 
 
 # -------------------------------------------------
@@ -172,13 +183,18 @@ async def send_message(payload: MessageInput):
 @router.post("/staff-nurse")
 async def ask_staff_nurse(payload: StaffNurseInput):
     """
-    Ask the staff nurse for guidance (available at any time).
+    Ask the staff nurse for guidance OR verification (auto-detected).
     
-    The staff nurse provides high-level guidance only.
-    Does not evaluate, approve, or block the student.
+    NEW BEHAVIOR (Issue #2 Fix):
+    - The nurse automatically detects if student is requesting verification
+    - If verification detected: Records as action + provides verification response
+    - If general question: Provides guidance only (no action recorded)
     
-    NOTE: For material verification during cleaning_and_dressing step,
-    use the /verify-material endpoint instead to ensure verification is tracked as an action.
+    This mimics real VR interaction where speaking to nurse triggers appropriate response.
+    
+    Detection keywords for verification:
+    - "verify", "check", "confirm", "is this correct"
+    - Mentions of "solution", "dressing", "bottle", "packet", "expires", "expiry"
     """
     session = session_manager.get_session(payload.session_id)
     if not session:
@@ -186,6 +202,18 @@ async def ask_staff_nurse(payload: StaffNurseInput):
     
     current_step = session["current_step"]
     
+    # ⭐ NEW: Auto-detect verification request
+    is_verification, material_type = _detect_verification_request(payload.message)
+    
+    if is_verification and current_step == Step.CLEANING_AND_DRESSING.value:
+        # This is a verification request - handle as action
+        return await _handle_verification_as_action(
+            session=session,
+            student_message=payload.message,
+            material_type=material_type
+        )
+    
+    # Regular guidance request
     # Determine next step
     try:
         from app.core.state_machine import next_step as get_next_step
@@ -203,67 +231,110 @@ async def ask_staff_nurse(payload: StaffNurseInput):
     
     return {
         "staff_nurse_response": response,
-        "current_step": current_step
+        "current_step": current_step,
+        "is_verification": False
     }
 
 
-@router.post("/verify-material")
-async def verify_material(payload: VerifyMaterialInput):
+def _detect_verification_request(message: str) -> tuple[bool, str]:
     """
-    Student requests staff nurse to verify cleaning solution or dressing packet.
-    
-    This is an ACTION endpoint (not just conversation).
-    Records the verification action AND provides nurse verbal feedback.
-    
-    Use this endpoint instead of /staff-nurse for verification to ensure
-    the action is properly tracked for evaluation.
-    
-    Args:
-        material_type: "solution" or "dressing"
-        material_name: What the student identifies it as
-        expiry_date: Date stated by student
-        package_condition: "intact", "damaged", etc.
+    Detect if student message is a verification request.
     
     Returns:
-        - Nurse's verbal verification response
-        - Action recorded confirmation
-        - Real-time feedback
+        (is_verification, material_type)
+        - is_verification: True if verification detected
+        - material_type: "solution" or "dressing" or ""
     """
-    session = session_manager.get_session(payload.session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    message_lower = message.lower()
     
-    current_step = session["current_step"]
+    # Verification keywords
+    verification_keywords = [
+        "verify", "check", "confirm", "is this correct", "is this right",
+        "can you check", "could you check", "look at this", "inspect"
+    ]
     
-    # Only allow verification during CLEANING_AND_DRESSING step
-    if current_step != Step.CLEANING_AND_DRESSING.value:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Material verification only allowed during cleaning_and_dressing step"
+    # Material keywords
+    solution_keywords = [
+        "solution", "surgical spirit", "spirit", "bottle", "liquid", "cleaning solution"
+    ]
+    
+    dressing_keywords = [
+        "dressing", "packet", "pack", "bandage", "sterile dressing", "gauze"
+    ]
+    
+    # Check if it's a verification request
+    has_verification_keyword = any(keyword in message_lower for keyword in verification_keywords)
+    
+    # Additional indicators
+    mentions_expiry = any(word in message_lower for word in ["expire", "expiry", "expiration", "date"])
+    mentions_condition = any(word in message_lower for word in ["intact", "sealed", "damaged", "condition", "package"])
+    
+    # Must have verification keyword OR (expiry + condition mention)
+    is_verification = has_verification_keyword or (mentions_expiry and mentions_condition)
+    
+    if not is_verification:
+        return False, ""
+    
+    # Determine material type
+    has_solution = any(keyword in message_lower for keyword in solution_keywords)
+    has_dressing = any(keyword in message_lower for keyword in dressing_keywords)
+    
+    if has_solution:
+        material_type = "solution"
+    elif has_dressing:
+        material_type = "dressing"
+    else:
+        # Default to solution if unclear
+        material_type = "solution"
+    
+    return True, material_type
+
+
+async def _handle_verification_as_action(
+    session: dict,
+    student_message: str,
+    material_type: str
+) -> dict:
+    """
+    Handle verification request as an action.
+    
+    This is called when nurse detects verification in conversation.
+    """
+    session_id = list(session_manager.sessions.keys())[
+        list(session_manager.sessions.values()).index(session)
+    ]
+    
+    action_type = f"action_verify_{material_type}"
+    
+    # ⭐ FIX #1: Check if action already performed
+    if is_action_already_performed(session, action_type):
+        return {
+            "staff_nurse_response": f"You've already verified the {material_type} with me. You can proceed to the next step.",
+            "current_step": session["current_step"],
+            "is_verification": True,
+            "action_recorded": False,
+            "already_performed": True
+        }
+    
+    # Get cached RAG guidelines
+    rag_guidelines = session.get("cached_rag_guidelines", "")
+    
+    if not rag_guidelines:
+        rag_result = await retrieve_with_rag(
+            query="wound cleaning and dressing preparation steps sequence prerequisites verification",
+            scenario_id=session["scenario_id"]
         )
+        rag_guidelines = rag_result.get("text", "")
     
-    # Generate nurse verbal response
+    # Generate nurse conversational response
     staff_nurse = StaffNurseAgent()
-    nurse_response = await staff_nurse.verify_material(
-        material_type=payload.material_type,
-        material_name=payload.material_name,
-        expiry_date=payload.expiry_date,
-        package_condition=payload.package_condition
+    nurse_response = await staff_nurse.verify_material_conversational(
+        student_message=student_message,
+        material_type=material_type
     )
     
-    # Record as action with metadata
-    action_type = f"action_verify_{payload.material_type}"
-    
-    # Get current action events BEFORE recording this one (for real-time feedback)
+    # Get current action events BEFORE recording
     performed_actions = session.get("action_events", [])
-    
-    # Retrieve RAG guidelines for real-time evaluation
-    rag_result = await retrieve_with_rag(
-        query="wound cleaning and dressing preparation steps sequence prerequisites verification",
-        scenario_id=session["scenario_id"]
-    )
-    
-    rag_guidelines = rag_result.get("text", "")
     
     # Get real-time feedback
     real_time_feedback = await clinical_agent.get_real_time_feedback(
@@ -274,32 +345,30 @@ async def verify_material(payload: VerifyMaterialInput):
     
     # Record the verification action
     result = action_event_service.record_action(
-        session_id=payload.session_id,
+        session_id=session_id,
         action_type=action_type,
-        step=current_step,
+        step=session["current_step"],
         metadata={
-            "material_type": payload.material_type,
-            "material_name": payload.material_name,
-            "expiry_date": payload.expiry_date,
-            "package_condition": payload.package_condition,
-            "nurse_approval": nurse_response
+            "material_type": material_type,
+            "student_message": student_message,
+            "nurse_response": nurse_response,
+            "auto_detected": True
         }
     )
     
-    # Print to terminal for debugging
+    # Print to terminal
     print("\n" + "="*60)
-    print(f"MATERIAL VERIFICATION - Type: {payload.material_type}")
+    print(f"AUTO-DETECTED VERIFICATION - Type: {material_type}")
     print("="*60)
-    print(f"Material: {payload.material_name}")
-    print(f"Expiry: {payload.expiry_date}")
-    print(f"Condition: {payload.package_condition}")
+    print(f"Student Message: {student_message}")
     print(f"Nurse Response: {nurse_response}")
     print(f"Feedback Status: {real_time_feedback.get('status')}")
-    print(f"Feedback Message: {real_time_feedback.get('message')}")
     print("="*60 + "\n")
     
     return {
-        "nurse_response": nurse_response,
+        "staff_nurse_response": nurse_response,
+        "current_step": session["current_step"],
+        "is_verification": True,
         "action_recorded": True,
         "action_type": action_type,
         "timestamp": result.get("timestamp"),
@@ -314,20 +383,18 @@ async def verify_material(payload: VerifyMaterialInput):
 @router.post("/action")
 async def record_action(payload: ActionInput):
     """
-    Record a preparation action with REAL-TIME FEEDBACK using RAG guidelines.
+    Record a preparation action with REAL-TIME FEEDBACK using CACHED RAG guidelines.
+    
+    NEW (Issue #1 Fix): Prevents duplicate actions.
+    If student tries to perform an action they've already done, system notifies them.
     
     For CLEANING_AND_DRESSING step:
-    1. Records the action
-    2. Retrieves RAG guidelines for this step
-    3. Provides immediate, contextual feedback based on:
-       - What actions have been completed
-       - What the current action is
-       - What prerequisites might be missing (ALL of them, not just previous)
+    1. Checks if action already performed
+    2. Records the action (if not duplicate)
+    3. Uses CACHED RAG guidelines
+    4. Provides immediate, contextual feedback
     
     Returns actionable real-time feedback to guide the student.
-    
-    NOTE: For verification actions (verify solution/dressing), 
-    use /verify-material endpoint instead.
     """
     session = session_manager.get_session(payload.session_id)
     if not session:
@@ -342,25 +409,53 @@ async def record_action(payload: ActionInput):
             detail=f"Actions not allowed in {current_step} step"
         )
     
+    # ⭐ FIX #1: Check if action already performed (DUPLICATE PREVENTION)
+    if is_action_already_performed(session, payload.action_type):
+        action_name = payload.action_type.replace("action_", "").replace("_", " ").title()
+        
+        print("\n" + "="*60)
+        print(f"DUPLICATE ACTION PREVENTED - Action: {payload.action_type}")
+        print("="*60)
+        print(f"Status: Already performed")
+        print("="*60 + "\n")
+        
+        return {
+            "action_recorded": False,
+            "action_type": payload.action_type,
+            "step": current_step,
+            "already_performed": True,
+            "feedback": {
+                "message": f"You have already completed {action_name}. Please proceed to the next action.",
+                "status": "duplicate",
+                "can_proceed": True,
+                "missing_actions": []
+            }
+        }
+    
     # Get current action events BEFORE recording this one
     performed_actions = session.get("action_events", [])
     
-    # Retrieve RAG guidelines for real-time evaluation
-    rag_result = await retrieve_with_rag(
-        query="wound cleaning and dressing preparation steps sequence prerequisites required actions",
-        scenario_id=session["scenario_id"]
-    )
+    # Use CACHED RAG guidelines
+    rag_guidelines = session.get("cached_rag_guidelines", "")
     
-    rag_guidelines = rag_result.get("text", "")
+    if not rag_guidelines:
+        # Fallback: Load RAG if not cached
+        print("⚠️ WARNING: RAG guidelines not cached, loading now...")
+        rag_result = await retrieve_with_rag(
+            query="wound cleaning and dressing preparation steps sequence prerequisites required actions",
+            scenario_id=session["scenario_id"]
+        )
+        rag_guidelines = rag_result.get("text", "")
+        session["cached_rag_guidelines"] = rag_guidelines
     
-    # Get real-time feedback BEFORE recording (to check prerequisites)
+    # Get real-time feedback BEFORE recording
     real_time_feedback = await clinical_agent.get_real_time_feedback(
         action_type=payload.action_type,
         performed_actions=performed_actions,
         rag_guidelines=rag_guidelines
     )
     
-    # Record the action (regardless of feedback - no blocking)
+    # Record the action (not a duplicate, so safe to record)
     result = action_event_service.record_action(
         session_id=payload.session_id,
         action_type=payload.action_type,
@@ -368,7 +463,7 @@ async def record_action(payload: ActionInput):
         metadata=payload.metadata
     )
     
-    # Print to terminal for debugging (agent-level feedback)
+    # Print to terminal for debugging
     print("\n" + "="*60)
     print(f"REAL-TIME FEEDBACK - Action: {payload.action_type}")
     print("="*60)
@@ -380,12 +475,13 @@ async def record_action(payload: ActionInput):
     print(f"Total Actions: {real_time_feedback.get('total_actions_so_far')}")
     print("="*60 + "\n")
     
-    # Return simplified feedback to student (what they see in UI)
+    # Return simplified feedback to student
     return {
         "action_recorded": True,
         "action_type": payload.action_type,
         "step": current_step,
         "timestamp": result.get("timestamp"),
+        "already_performed": False,
         "feedback": {
             "message": real_time_feedback.get("message"),
             "status": real_time_feedback.get("status"),
@@ -455,12 +551,10 @@ async def run_step(payload: StepInput):
     1. Run evaluator agents (only for HISTORY step)
     2. Aggregate evaluations into scores + raw feedback
     3. Generate narrated feedback paragraph (only for HISTORY step)
-    4. Return BOTH to client:
-       - HISTORY: narrated_feedback + score (for student UI)
-       - ASSESSMENT: mcq_result only (no narration)
-       - CLEANING_AND_DRESSING: summary only (no evaluation)
-       - agent_feedback (printed to terminal for debugging)
+    4. Return feedback to client
     5. Advance to next step
+    
+    When entering CLEANING_AND_DRESSING step, cache RAG guidelines
     """
     session = session_manager.get_session(payload.session_id)
     if not session:
@@ -510,12 +604,10 @@ async def run_step(payload: StepInput):
 
     elif current_step == Step.CLEANING_AND_DRESSING.value:
         # NO FINAL EVALUATION for this step
-        # Real-time feedback was sufficient
         pass
 
     # ---------------------------------------------
-    # Print agent feedback to terminal (for debugging)
-    # Only if we have evaluator outputs
+    # Print agent feedback to terminal
     # ---------------------------------------------
     if evaluator_outputs:
         print("\n" + "="*80)
@@ -545,8 +637,7 @@ async def run_step(payload: StepInput):
     )
 
     # ---------------------------------------------
-    # Print final scores to terminal (for debugging)
-    # Only if we have scores
+    # Print final scores to terminal
     # ---------------------------------------------
     if evaluation.get('scores'):
         print("\n" + "="*80)
@@ -568,7 +659,7 @@ async def run_step(payload: StepInput):
         print("="*80 + "\n")
 
     # ---------------------------------------------
-    # Cleanup: Clear step-specific data after evaluation
+    # Cleanup: Clear step-specific data
     # ---------------------------------------------
     if current_step == Step.HISTORY.value:
         conversation_manager.clear_step(payload.session_id, Step.HISTORY.value)
@@ -579,22 +670,30 @@ async def run_step(payload: StepInput):
             session["mcq_answers"] = {}
     
     elif current_step == Step.CLEANING_AND_DRESSING.value:
-        # Clear action events
         session = session_manager.get_session(payload.session_id)
         if session:
             session["action_events"] = []
+            session.pop("cached_rag_guidelines", None)
 
     # ---------------------------------------------
-    # Advance step (always allowed)
+    # Advance step
     # ---------------------------------------------
     next_step = session_manager.advance_step(payload.session_id)
+    
+    # Cache RAG guidelines when entering CLEANING_AND_DRESSING step
+    if next_step == Step.CLEANING_AND_DRESSING.value:
+        print("🔄 Caching RAG guidelines for cleaning_and_dressing step...")
+        rag_result = await retrieve_with_rag(
+            query="wound cleaning and dressing preparation steps sequence prerequisites required actions",
+            scenario_id=session["scenario_id"]
+        )
+        session["cached_rag_guidelines"] = rag_result.get("text", "")
+        print("✓ RAG guidelines cached successfully")
 
     # ---------------------------------------------
-    # Return STUDENT-FACING feedback only
-    # Agent feedback was printed to terminal
+    # Return feedback
     # ---------------------------------------------
     
-    # For CLEANING_AND_DRESSING step, provide summary
     if current_step == Step.CLEANING_AND_DRESSING.value:
         completed_count = len(session.get("action_events", []))
         return {
@@ -608,7 +707,6 @@ async def run_step(payload: StepInput):
             }
         }
     
-    # For ASSESSMENT step, only return MCQ results (no narration)
     if current_step == Step.ASSESSMENT.value:
         return {
             "session_id": payload.session_id,
@@ -617,7 +715,6 @@ async def run_step(payload: StepInput):
             "mcq_result": evaluation.get("mcq_result")
         }
     
-    # For HISTORY step, provide narrated feedback + score
     return {
         "session_id": payload.session_id,
         "current_step": current_step,

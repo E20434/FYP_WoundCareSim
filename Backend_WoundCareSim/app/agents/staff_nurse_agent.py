@@ -6,14 +6,12 @@ class StaffNurseAgent(BaseAgent):
     """
     Conversational supervising nurse (GUIDANCE + VERIFICATION).
     
-    Two modes:
+    Three modes:
     1. GUIDANCE: Explains current/next step
-    2. VERIFICATION: Checks solution/dressing materials when asked
+    2. VERIFICATION (Conversational): Student shows material and describes it verbally
+    3. VERIFICATION (Structured - deprecated): Old form-based method
     
     Does NOT evaluate, approve progression, or block steps.
-    
-    IMPORTANT: Verification via this agent is for CONVERSATION ONLY.
-    Actual verification ACTIONS should be recorded via /action endpoint.
     """
 
     FINISH_KEYWORDS = [
@@ -43,7 +41,9 @@ class StaffNurseAgent(BaseAgent):
         "surgical spirit",
         "dry dressing",
         "bottle",
-        "packet"
+        "packet",
+        "package",
+        "expires"
     ]
 
     def __init__(self):
@@ -73,39 +73,14 @@ class StaffNurseAgent(BaseAgent):
         next_guidance = STEP_GUIDANCE.get(next_step, "") if next_step else ""
 
         # ================================================
-        # MODE 1: VERIFICATION (for cleaning_and_dressing)
+        # MODE 1: VERIFICATION REDIRECT (for cleaning_and_dressing)
         # ================================================
         if is_verification and current_step == "cleaning_and_dressing":
-            system_prompt = (
-                "You are a supervising staff nurse verifying materials with a nursing student.\n\n"
-                "VERIFICATION ROLE:\n"
-                "- The student is showing you a cleaning solution or dressing packet.\n"
-                "- Listen to what the student tells you about the item.\n"
-                "- The student should state: name/type, expiration date, package integrity.\n\n"
-                "VERIFICATION PROCESS:\n"
-                "- If student provides complete info → Acknowledge and approve\n"
-                "- If student provides incomplete info → Ask for missing details\n"
-                "- If student mentions 'expired' or 'damaged' → Instruct to get replacement\n"
-                "- Assume items are correct if student states them properly\n\n"
-                "EXPECTED MATERIALS:\n"
-                "- Cleaning solution: Surgical spirit\n"
-                "- Dressing packet: Dry dressing (sterile)\n\n"
-                "RESPONSE STYLE:\n"
-                "- Be supportive and professional\n"
-                "- Use simple, clear language\n"
-                "- Give specific feedback: 'Surgical spirit, expires [date], bottle intact - looks good.'\n"
-                "- End with clear approval: 'You may use it' or 'You can proceed.'\n\n"
-                "IMPORTANT NOTE:\n"
-                "- Remind the student: 'Make sure to record this verification action in the system.'\n"
-                "- This ensures the verification is tracked for evaluation.\n"
-            )
-
-            user_prompt = (
-                f"CURRENT STEP: {current_step}\n"
-                f"STUDENT REQUEST:\n{student_input}\n\n"
-                f"The student is asking you to verify materials.\n"
-                "Respond as a staff nurse checking what the student tells you.\n"
-                "Remind them to record this verification as an action."
+            # Redirect to proper verification endpoint
+            return (
+                "I can help verify materials! Please use the verification conversation "
+                "feature to show me what you have. Describe the material, its expiry date, "
+                "and the package condition, and I'll verify it for you."
             )
 
         # ================================================
@@ -161,6 +136,67 @@ class StaffNurseAgent(BaseAgent):
             temperature=0.3
         )
 
+    async def verify_material_conversational(
+        self,
+        student_message: str,
+        material_type: str
+    ) -> str:
+        """
+        CONVERSATIONAL verification response.
+        Student describes the material verbally, nurse responds conversationally.
+        
+        This is the new preferred method - natural conversation like in real clinical practice.
+        
+        Args:
+            student_message: What the student says (e.g., "Can you verify this surgical spirit? 
+                           It expires March 2026 and the bottle is intact.")
+            material_type: "solution" or "dressing" (for context)
+        
+        Returns:
+            Nurse's conversational verification response
+        """
+        
+        system_prompt = (
+            "You are a supervising staff nurse conducting material verification.\n\n"
+            "ROLE:\n"
+            "- Student is showing you a material and describing it verbally\n"
+            "- Respond conversationally as a real nurse would\n"
+            "- Listen to what they tell you about the material\n\n"
+            "VERIFICATION PROCESS:\n"
+            "- If student provides complete info (name, expiry, condition) → Acknowledge and approve\n"
+            "- If student provides incomplete info → Ask for missing details naturally\n"
+            "- If student mentions 'expired' or 'damaged' → Instruct to get replacement\n"
+            "- If everything sounds correct → Give clear approval\n\n"
+            "EXPECTED MATERIALS:\n"
+            "- Cleaning solution: Surgical spirit\n"
+            "- Dressing packet: Dry sterile dressing\n\n"
+            "RESPONSE STYLE:\n"
+            "- Be supportive and professional\n"
+            "- Use natural conversational language\n"
+            "- Give specific feedback based on what student says\n"
+            "- End with clear approval: 'You may use it' or 'You can proceed'\n"
+            "- Keep responses SHORT (2-3 sentences)\n\n"
+            "EXAMPLES:\n"
+            "Student: 'Nurse, can you verify this surgical spirit? It expires March 2026 and the bottle is intact.'\n"
+            "Nurse: 'Let me see... Surgical spirit, expires March 2026, bottle intact - looks good. You may use it.'\n\n"
+            "Student: 'Could you check this sterile dressing packet? Expires April 2026.'\n"
+            "Nurse: 'What's the condition of the package? Is it sealed properly?'\n\n"
+            "Student: 'This solution expires next month.'\n"
+            "Nurse: 'That's too close to expiry. Please get a fresh bottle with a longer expiration date.'\n"
+        )
+        
+        user_prompt = (
+            f"MATERIAL TYPE: {material_type}\n"
+            f"STUDENT MESSAGE:\n{student_message}\n\n"
+            "Respond as a staff nurse verifying this material conversationally."
+        )
+        
+        return await self.run(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2
+        )
+
     async def verify_material(
         self,
         material_type: str,
@@ -169,8 +205,9 @@ class StaffNurseAgent(BaseAgent):
         package_condition: str
     ) -> str:
         """
-        Dedicated verification response for when verification is called as an ACTION.
-        This is separate from conversational verification.
+        DEPRECATED: Structured verification response.
+        This is the old form-based method, kept for backwards compatibility.
+        Use verify_material_conversational() instead for better clinical simulation.
         
         Args:
             material_type: "solution" or "dressing"

@@ -558,6 +558,11 @@ select:focus {
     border-left: 4px solid var(--warning-color);
 }
 
+.feedback-message.info {
+    background: #e0f2fe;
+    border-left: 4px solid #0ea5e9;
+}
+
 .feedback-icon {
     font-size: 1.2rem;
     margin-right: 8px;

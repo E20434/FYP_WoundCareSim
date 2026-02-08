@@ -1,5 +1,5 @@
 // Configuration
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // Global State
 let currentSession = {
@@ -288,16 +288,17 @@ function showCleaningAndDressingStep() {
 }
 
 function loadCleaningAndDressingActions() {
+    // ⭐ FIX #2: Match action names with RAG guidelines exactly
     const actions = [
         { type: 'action_initial_hand_hygiene', label: '1. Initial Hand Hygiene' },
-        { type: 'action_clean_trolley', label: '2. Clean Dressing Trolley' },
-        { type: 'action_hand_hygiene_after_cleaning', label: '3. Hand Hygiene After Cleaning' },
-        { type: 'action_select_solution', label: '4. Select Cleaning Solution' },
-        // Action 5 is verification - handled by form
+        { type: 'action_clean_trolley', label: '2. Clean the Dressing Trolley' },
+        { type: 'action_hand_hygiene_after_cleaning', label: '3. Hand Hygiene After Trolley Cleaning' },
+        { type: 'action_select_solution', label: '4. Select Prescribed Cleaning Solution' },
+        // Action 5 is verification - handled by conversational chat
         { type: 'action_select_dressing', label: '6. Select Dressing Materials' },
-        // Action 7 is verification - handled by form
-        { type: 'action_arrange_materials', label: '8. Arrange Materials on Trolley' },
-        { type: 'action_bring_trolley', label: '9. Bring Trolley to Patient' }
+        // Action 7 is verification - handled by conversational chat
+        { type: 'action_arrange_materials', label: '8. Arrange Solutions and Materials on Trolley' },
+        { type: 'action_bring_trolley', label: '9. Bring Prepared Trolley to Patient Area' }
     ];
     
     const container = document.getElementById('cleaningAndDressingActions');
@@ -322,9 +323,23 @@ async function recordAction(actionType) {
             action_type: actionType
         });
         
-        // Update counter
-        currentSession.actionCounter++;
-        document.getElementById('actionCounter').textContent = currentSession.actionCounter;
+        // ⭐ FIX #1: Handle duplicate actions
+        if (response.already_performed) {
+            // Show duplicate action notification
+            displayRealtimeFeedback({
+                message: response.feedback.message,
+                status: 'duplicate',
+                can_proceed: true,
+                missing_actions: []
+            });
+            return; // Don't increment counter or update UI
+        }
+        
+        // Update counter (only if action was actually recorded)
+        if (response.action_recorded) {
+            currentSession.actionCounter++;
+            document.getElementById('actionCounter').textContent = currentSession.actionCounter;
+        }
         
         // Display real-time feedback
         displayRealtimeFeedback(response.feedback);
@@ -334,99 +349,26 @@ async function recordAction(actionType) {
     }
 }
 
-async function verifySolution() {
-    const solutionType = document.getElementById('solutionType').value.trim();
-    const expiryDate = document.getElementById('solutionExpiry').value.trim();
-    const packageCondition = document.getElementById('solutionCondition').value;
-    
-    if (!solutionType || !expiryDate) {
-        showError('Please fill in all solution verification fields');
-        return;
-    }
-    
-    try {
-        const response = await apiCall('/session/verify-material', 'POST', {
-            session_id: currentSession.sessionId,
-            material_type: 'solution',
-            material_name: solutionType,
-            expiry_date: expiryDate,
-            package_condition: packageCondition
-        });
-        
-        // Update counter (this is Action 5)
-        currentSession.actionCounter++;
-        document.getElementById('actionCounter').textContent = currentSession.actionCounter;
-        
-        // Display nurse response
-        const responseDiv = document.getElementById('staffNurseCleaningAndDressing');
-        responseDiv.innerHTML = `
-            <div class="verification-response">
-                <strong>Staff Nurse (Verification):</strong>
-                <p>${response.nurse_response}</p>
-            </div>
-        `;
-        
-        // Display real-time feedback
-        displayRealtimeFeedback(response.feedback);
-        
-        // Clear form
-        document.getElementById('solutionType').value = '';
-        document.getElementById('solutionExpiry').value = '';
-        
-    } catch (error) {
-        console.error('Failed to verify solution:', error);
-    }
-}
-
-async function verifyDressing() {
-    const dressingType = document.getElementById('dressingType').value.trim();
-    const expiryDate = document.getElementById('dressingExpiry').value.trim();
-    const packageCondition = document.getElementById('dressingCondition').value;
-    
-    if (!dressingType || !expiryDate) {
-        showError('Please fill in all dressing verification fields');
-        return;
-    }
-    
-    try {
-        const response = await apiCall('/session/verify-material', 'POST', {
-            session_id: currentSession.sessionId,
-            material_type: 'dressing',
-            material_name: dressingType,
-            expiry_date: expiryDate,
-            package_condition: packageCondition
-        });
-        
-        // Update counter (this is Action 7)
-        currentSession.actionCounter++;
-        document.getElementById('actionCounter').textContent = currentSession.actionCounter;
-        
-        // Display nurse response
-        const responseDiv = document.getElementById('staffNurseCleaningAndDressing');
-        responseDiv.innerHTML = `
-            <div class="verification-response">
-                <strong>Staff Nurse (Verification):</strong>
-                <p>${response.nurse_response}</p>
-            </div>
-        `;
-        
-        // Display real-time feedback
-        displayRealtimeFeedback(response.feedback);
-        
-        // Clear form
-        document.getElementById('dressingType').value = '';
-        document.getElementById('dressingExpiry').value = '';
-        
-    } catch (error) {
-        console.error('Failed to verify dressing:', error);
-    }
-}
+// Verification is now handled automatically in askStaffNurse()
+// No separate functions needed
 
 function displayRealtimeFeedback(feedback) {
     const feedbackBox = document.getElementById('realtimeFeedback');
     
-    let statusClass = feedback.status === 'complete' ? 'success' : 'warning';
-    let statusIcon = feedback.status === 'complete' ? '✓' : '⚠️';
+    // ⭐ NEW: Handle duplicate action status
+    let statusClass = 'success';
+    let statusIcon = '✓';
+    
+    if (feedback.status === 'complete') {
+        statusClass = 'success';
+        statusIcon = '✓';
+    } else if (feedback.status === 'missing_prerequisites') {
+        statusClass = 'warning';
+        statusIcon = '⚠️';
+    } else if (feedback.status === 'duplicate') {
+        statusClass = 'info';
+        statusIcon = 'ℹ️';
+    }
     
     let html = `
         <strong>Real-Time Feedback:</strong>
@@ -484,12 +426,41 @@ async function askStaffNurse() {
             message: message
         });
         
-        // Display response
+        // ⭐ NEW: Handle auto-detected verification
         const responseDiv = document.getElementById(responseId);
-        responseDiv.innerHTML = `
-            <strong>Staff Nurse (Guidance):</strong>
-            <p>${response.staff_nurse_response}</p>
-        `;
+        
+        if (response.is_verification && response.action_recorded) {
+            // This was a verification request - recorded as action
+            responseDiv.innerHTML = `
+                <div class="verification-response">
+                    <strong>Staff Nurse (Verification - Action Recorded):</strong>
+                    <p>${response.staff_nurse_response}</p>
+                </div>
+            `;
+            
+            // Update counter
+            currentSession.actionCounter++;
+            document.getElementById('actionCounter').textContent = currentSession.actionCounter;
+            
+            // Display real-time feedback
+            if (response.feedback) {
+                displayRealtimeFeedback(response.feedback);
+            }
+        } else if (response.is_verification && response.already_performed) {
+            // Verification already done
+            responseDiv.innerHTML = `
+                <div class="info-message">
+                    <strong>Staff Nurse:</strong>
+                    <p>${response.staff_nurse_response}</p>
+                </div>
+            `;
+        } else {
+            // Regular guidance
+            responseDiv.innerHTML = `
+                <strong>Staff Nurse (Guidance):</strong>
+                <p>${response.staff_nurse_response}</p>
+            `;
+        }
         
         input.value = '';
         

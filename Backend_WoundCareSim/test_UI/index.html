@@ -210,81 +210,40 @@
 
                 <!-- Staff Nurse & Verification -->
                 <div class="card">
-                    <h3>Staff Nurse (Guidance & Verification)</h3>
+                    <h3>Staff Nurse Communication</h3>
                     
-                    <div class="verification-info">
-                        <h4>Two Ways to Interact:</h4>
-                        
-                        <div class="verification-method">
-                            <strong>1. Material Verification (Actions 5 & 7) ⚠️</strong>
-                            <p>Use the verification forms below to record verification as an ACTION:</p>
-                            
-                            <!-- Cleaning Solution Verification -->
-                            <div class="verification-form">
-                                <h5>Verify Cleaning Solution (Action 5)</h5>
-                                <div class="form-group">
-                                    <label>Solution Type:</label>
-                                    <input type="text" id="solutionType" placeholder="e.g., Surgical spirit">
-                                </div>
-                                <div class="form-group">
-                                    <label>Expiry Date:</label>
-                                    <input type="text" id="solutionExpiry" placeholder="e.g., March 2026">
-                                </div>
-                                <div class="form-group">
-                                    <label>Package Condition:</label>
-                                    <select id="solutionCondition">
-                                        <option value="intact">Intact</option>
-                                        <option value="damaged">Damaged</option>
-                                    </select>
-                                </div>
-                                <button class="btn btn-warning" onclick="verifySolution()">
-                                    Request Nurse Verification (Action 5)
-                                </button>
-                            </div>
-                            
-                            <!-- Dressing Verification -->
-                            <div class="verification-form">
-                                <h5>Verify Dressing Packet (Action 7)</h5>
-                                <div class="form-group">
-                                    <label>Dressing Type:</label>
-                                    <input type="text" id="dressingType" placeholder="e.g., Dry sterile dressing">
-                                </div>
-                                <div class="form-group">
-                                    <label>Expiry Date:</label>
-                                    <input type="text" id="dressingExpiry" placeholder="e.g., April 2026">
-                                </div>
-                                <div class="form-group">
-                                    <label>Package Condition:</label>
-                                    <select id="dressingCondition">
-                                        <option value="intact">Intact</option>
-                                        <option value="damaged">Damaged</option>
-                                    </select>
-                                </div>
-                                <button class="btn btn-warning" onclick="verifyDressing()">
-                                    Request Nurse Verification (Action 7)
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="verification-method">
-                            <strong>2. General Guidance (Non-Action)</strong>
-                            <p>Ask for step guidance using the chat below (this is NOT recorded as an action):</p>
-                        </div>
+                    <div class="info-box">
+                        <strong>🎤 Natural Conversation (Like VR):</strong>
+                        <p>Just talk to the nurse! The system automatically detects if you're asking for:</p>
+                        <ul>
+                            <li><strong>Verification (Actions 5 & 7):</strong> Automatically recorded as actions</li>
+                            <li><strong>Guidance:</strong> General help about the step</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="verification-examples">
+                        <strong>Example messages:</strong>
+                        <ul>
+                            <li><strong>For verification:</strong> "Nurse, can you verify this surgical spirit? It expires March 2026 and the bottle is intact."</li>
+                            <li><strong>For verification:</strong> "Could you check this sterile dressing packet? Expires April 2026, sealed properly."</li>
+                            <li><strong>For guidance:</strong> "What should I do next?"</li>
+                            <li><strong>For guidance:</strong> "How do I arrange the materials on the trolley?"</li>
+                        </ul>
                     </div>
                     
                     <div class="staff-nurse-response" id="staffNurseCleaningAndDressing">
-                        <p class="text-muted">Verification responses and guidance will appear here...</p>
+                        <p class="text-muted">Type a message to the staff nurse...</p>
                     </div>
                     
                     <div class="input-group">
                         <input 
                             type="text" 
                             id="nurseQuestionCleaningAndDressing" 
-                            placeholder="Ask for general guidance (not verification)..."
+                            placeholder="Talk to the nurse (verification or guidance)..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
-                        <button class="btn btn-secondary" onclick="askStaffNurse()">
-                            Ask for Guidance
+                        <button class="btn btn-primary" onclick="askStaffNurse()">
+                            Send to Nurse
                         </button>
                     </div>
                 </div>
