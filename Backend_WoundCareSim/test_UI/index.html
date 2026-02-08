@@ -11,7 +11,7 @@
         <!-- Header -->
         <header class="header">
             <h1>VR Nursing Education System</h1>
-            <p class="subtitle">Backend Testing Interface - Week 9 (With Verification)</p>
+            <p class="subtitle">Backend Testing Interface - Week 9 (Updated System)</p>
         </header>
 
         <!-- Session Info Bar -->
@@ -48,7 +48,12 @@
                 </button>
                 
                 <div class="info-box">
-                    <strong>Note:</strong> This Test UI now includes staff nurse verification for CLEANING and DRESSING steps.
+                    <strong>Training Steps:</strong>
+                    <ol>
+                        <li><strong>History Taking</strong> - Communicate with patient to gather medical history</li>
+                        <li><strong>Assessment</strong> - Answer MCQs about wound assessment</li>
+                        <li><strong>Cleaning & Dressing Preparation</strong> - Prepare materials (9 required actions with real-time feedback)</li>
+                    </ol>
                 </div>
             </div>
         </div>
@@ -58,6 +63,9 @@
             <div class="step-header">
                 <h2>Step 1: Patient History</h2>
                 <p>Ask the patient questions to gather their medical history.</p>
+                <div class="step-reminder">
+                    <strong>⚠️ Important:</strong> If you proceed without any conversation, you will receive zero marks for this step.
+                </div>
             </div>
 
             <div class="main-content">
@@ -115,6 +123,9 @@
             <div class="step-header">
                 <h2>Step 2: Wound Assessment</h2>
                 <p>Answer the multiple-choice questions to assess the wound.</p>
+                <div class="step-reminder">
+                    <strong>⚠️ Important:</strong> If you proceed without answering questions, you will receive zero marks for this step.
+                </div>
             </div>
 
             <div class="main-content">
@@ -153,130 +164,135 @@
             </div>
         </div>
 
-        <!-- CLEANING Step -->
-        <div class="screen" id="cleaningScreen" style="display: none;">
+        <!-- CLEANING AND DRESSING Step (Combined - 9 Actions) -->
+        <div class="screen" id="cleaningAndDressingScreen" style="display: none;">
             <div class="step-header">
-                <h2>Step 3: Wound Cleaning</h2>
-                <p>Perform hand washing, verify materials with staff nurse, and clean the wound.</p>
+                <h2>Step 3: Cleaning & Dressing Preparation</h2>
+                <p>Prepare all equipment, solutions, and materials for wound care. Complete 9 required actions in sequence.</p>
+                <div class="step-reminder">
+                    <strong>ℹ️ Note:</strong> You'll receive real-time feedback after each action. No final score/feedback - real-time guidance is sufficient.
+                </div>
             </div>
 
             <div class="main-content">
                 <!-- Actions Area -->
                 <div class="card">
-                    <h3>Cleaning Actions</h3>
+                    <h3>Preparation Actions</h3>
+                    
                     <div class="actions-counter">
-                        <strong>Actions Recorded:</strong> <span id="cleaningCounter">0</span>
+                        <strong>Actions Completed:</strong> <span id="actionCounter">0</span> / 9
                     </div>
                     
-                    <div class="verification-reminder">
-                        <strong>⚠️ IMPORTANT:</strong> Ask staff nurse to verify materials (Step 4):
-                        <ul>
-                            <li>Normal saline solution</li>
-                            <li>Sterile dressing packet</li>
-                        </ul>
-                        Use the staff nurse chat below before bringing trolley to patient.
+                    <div class="info-box">
+                        <strong>Required Actions (in sequence):</strong>
+                        <ol>
+                            <li>Initial Hand Hygiene</li>
+                            <li>Clean the Dressing Trolley</li>
+                            <li>Hand Hygiene After Trolley Cleaning</li>
+                            <li>Select Prescribed Cleaning Solution</li>
+                            <li><strong>Verify Cleaning Solution with Staff Nurse ⚠️</strong></li>
+                            <li>Select Dressing Materials</li>
+                            <li><strong>Verify Sterile Dressing Packet with Staff Nurse ⚠️</strong></li>
+                            <li>Arrange Solutions and Materials on Trolley</li>
+                            <li>Bring Prepared Trolley to Patient Area</li>
+                        </ol>
                     </div>
                     
-                    <div class="actions-grid" id="cleaningActions">
+                    <div class="real-time-feedback-box" id="realtimeFeedback">
+                        <strong>Real-Time Feedback:</strong>
+                        <p class="text-muted">Perform actions to receive feedback...</p>
+                    </div>
+                    
+                    <div class="actions-grid" id="cleaningAndDressingActions">
                         <!-- Action buttons will be loaded here -->
                     </div>
                 </div>
 
-                <!-- Staff Nurse -->
+                <!-- Staff Nurse & Verification -->
                 <div class="card">
                     <h3>Staff Nurse (Guidance & Verification)</h3>
-                    <div class="staff-nurse-response" id="staffNurseCleaning">
-                        <p class="text-muted">Ask for verification of solutions and dressings...</p>
+                    
+                    <div class="verification-info">
+                        <h4>Two Ways to Interact:</h4>
+                        
+                        <div class="verification-method">
+                            <strong>1. Material Verification (Actions 5 & 7) ⚠️</strong>
+                            <p>Use the verification forms below to record verification as an ACTION:</p>
+                            
+                            <!-- Cleaning Solution Verification -->
+                            <div class="verification-form">
+                                <h5>Verify Cleaning Solution (Action 5)</h5>
+                                <div class="form-group">
+                                    <label>Solution Type:</label>
+                                    <input type="text" id="solutionType" placeholder="e.g., Surgical spirit">
+                                </div>
+                                <div class="form-group">
+                                    <label>Expiry Date:</label>
+                                    <input type="text" id="solutionExpiry" placeholder="e.g., March 2026">
+                                </div>
+                                <div class="form-group">
+                                    <label>Package Condition:</label>
+                                    <select id="solutionCondition">
+                                        <option value="intact">Intact</option>
+                                        <option value="damaged">Damaged</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-warning" onclick="verifySolution()">
+                                    Request Nurse Verification (Action 5)
+                                </button>
+                            </div>
+                            
+                            <!-- Dressing Verification -->
+                            <div class="verification-form">
+                                <h5>Verify Dressing Packet (Action 7)</h5>
+                                <div class="form-group">
+                                    <label>Dressing Type:</label>
+                                    <input type="text" id="dressingType" placeholder="e.g., Dry sterile dressing">
+                                </div>
+                                <div class="form-group">
+                                    <label>Expiry Date:</label>
+                                    <input type="text" id="dressingExpiry" placeholder="e.g., April 2026">
+                                </div>
+                                <div class="form-group">
+                                    <label>Package Condition:</label>
+                                    <select id="dressingCondition">
+                                        <option value="intact">Intact</option>
+                                        <option value="damaged">Damaged</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-warning" onclick="verifyDressing()">
+                                    Request Nurse Verification (Action 7)
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="verification-method">
+                            <strong>2. General Guidance (Non-Action)</strong>
+                            <p>Ask for step guidance using the chat below (this is NOT recorded as an action):</p>
+                        </div>
                     </div>
                     
-                    <div class="verification-examples">
-                        <strong>Example verification requests:</strong>
-                        <ul>
-                            <li>"Could you verify this normal saline solution? It's Normal Saline 0.9%, expires March 2026, bottle intact."</li>
-                            <li>"Can you check this sterile dressing packet? Expires April 2026, package sealed."</li>
-                        </ul>
+                    <div class="staff-nurse-response" id="staffNurseCleaningAndDressing">
+                        <p class="text-muted">Verification responses and guidance will appear here...</p>
                     </div>
                     
                     <div class="input-group">
                         <input 
                             type="text" 
-                            id="nurseQuestionCleaning" 
-                            placeholder="Ask staff nurse to verify or for guidance..."
+                            id="nurseQuestionCleaningAndDressing" 
+                            placeholder="Ask for general guidance (not verification)..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
                         <button class="btn btn-secondary" onclick="askStaffNurse()">
-                            Ask Nurse
+                            Ask for Guidance
                         </button>
                     </div>
                 </div>
             </div>
 
             <div class="action-bar">
-                <button class="btn btn-success btn-large" onclick="finishStep('cleaning')">
-                    Finish Cleaning Step →
-                </button>
-            </div>
-        </div>
-
-        <!-- DRESSING Step -->
-        <div class="screen" id="dressingScreen" style="display: none;">
-            <div class="step-header">
-                <h2>Step 4: Wound Dressing</h2>
-                <p>Perform hand washing, verify dressing with staff nurse, and apply the dressing.</p>
-            </div>
-
-            <div class="main-content">
-                <!-- Actions Area -->
-                <div class="card">
-                    <h3>Dressing Actions</h3>
-                    <div class="actions-counter">
-                        <strong>Actions Recorded:</strong> <span id="dressingCounter">0</span>
-                    </div>
-                    
-                    <div class="verification-reminder">
-                        <strong>⚠️ IMPORTANT:</strong> Ask staff nurse to verify (Step 2):
-                        <ul>
-                            <li>Sterile dressing packet</li>
-                        </ul>
-                        Use the staff nurse chat below before applying dressing.
-                    </div>
-                    
-                    <div class="actions-grid" id="dressingActions">
-                        <!-- Action buttons will be loaded here -->
-                    </div>
-                </div>
-
-                <!-- Staff Nurse -->
-                <div class="card">
-                    <h3>Staff Nurse (Guidance & Verification)</h3>
-                    <div class="staff-nurse-response" id="staffNurseDressing">
-                        <p class="text-muted">Ask for verification of dressing packet...</p>
-                    </div>
-                    
-                    <div class="verification-examples">
-                        <strong>Example verification request:</strong>
-                        <ul>
-                            <li>"Could you verify this sterile dressing packet? It's a sterile dressing, expires May 2026, package intact."</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input 
-                            type="text" 
-                            id="nurseQuestionDressing" 
-                            placeholder="Ask staff nurse to verify or for guidance..."
-                            onkeypress="handleEnter(event, askStaffNurse)"
-                        >
-                        <button class="btn btn-secondary" onclick="askStaffNurse()">
-                            Ask Nurse
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="action-bar">
-                <button class="btn btn-success btn-large" onclick="finishStep('dressing')">
-                    Finish Dressing Step →
+                <button class="btn btn-success btn-large" onclick="finishStep('cleaning_and_dressing')">
+                    Finish Preparation Step →
                 </button>
             </div>
         </div>
@@ -304,7 +320,7 @@
         <!-- Completion Screen -->
         <div class="screen" id="completionScreen" style="display: none;">
             <div class="card completion-card">
-                <h2>Session Complete!</h2>
+                <h2>🎉 Session Complete!</h2>
                 <p>Congratulations! You have completed all procedural steps.</p>
                 
                 <div class="completion-summary" id="completionSummary">

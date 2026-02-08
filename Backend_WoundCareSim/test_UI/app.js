@@ -1,5 +1,5 @@
 // Configuration
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://localhost:8000';
 
 // Global State
 let currentSession = {
@@ -9,7 +9,7 @@ let currentSession = {
     nextStep: null,
     scenarioMetadata: null,
     mcqQuestions: [],
-    actionCounter: { cleaning: 0, dressing: 0 }
+    actionCounter: 0
 };
 
 // ==========================================
@@ -131,7 +131,7 @@ async function loadSessionInfo() {
 // ==========================================
 
 function showHistoryStep() {
-    currentSession.currentStep = 'history'; // Update session state
+    currentSession.currentStep = 'history';
     showScreen('historyScreen');
     document.getElementById('currentStep').textContent = 'history';
     
@@ -191,7 +191,7 @@ function addMessageToConversation(speaker, text) {
 // ==========================================
 
 function showAssessmentStep() {
-    currentSession.currentStep = 'assessment'; // Update session state
+    currentSession.currentStep = 'assessment';
     showScreen('assessmentScreen');
     document.getElementById('currentStep').textContent = 'assessment';
     
@@ -242,37 +242,24 @@ async function selectMCQOption(questionId, answer) {
             answer: answer
         });
         
-        // Update UI
-        const questionDiv = document.getElementById(`mcq-${questionId}`);
-        const optionsDiv = document.getElementById(`options-${questionId}`);
-        const statusSpan = document.getElementById(`status-${questionId}`);
+        // Update UI with immediate feedback
+        const statusBadge = document.getElementById(`status-${questionId}`);
         const feedbackDiv = document.getElementById(`feedback-${questionId}`);
-        
-        // Disable all options
-        const options = optionsDiv.querySelectorAll('.mcq-option');
-        options.forEach(opt => {
-            opt.classList.add('disabled');
-            if (opt.textContent.trim() === answer) {
-                opt.classList.add('selected');
-            }
-        });
+        const optionsDiv = document.getElementById(`options-${questionId}`);
         
         // Show status
-        statusSpan.style.display = 'block';
-        statusSpan.className = `mcq-status ${response.status}`;
-        statusSpan.textContent = response.is_correct ? 'Correct' : 'Incorrect';
+        statusBadge.style.display = 'inline-block';
+        statusBadge.className = `mcq-status ${response.status}`;
+        statusBadge.textContent = response.is_correct ? '✓ Correct' : '✗ Incorrect';
         
-        // Mark question as answered
-        questionDiv.classList.add('answered', response.status);
-        
-        // Show feedback
+        // Show explanation
         feedbackDiv.style.display = 'block';
         feedbackDiv.className = `mcq-feedback ${response.status}`;
-        feedbackDiv.innerHTML = `
-            <span class="feedback-label">${response.is_correct ? 'Correct!' : 'Incorrect'}</span>
-            <p><strong>Correct Answer:</strong> ${response.correct_answer}</p>
-            <p><strong>Explanation:</strong> ${response.explanation}</p>
-        `;
+        feedbackDiv.innerHTML = `<strong>Explanation:</strong> ${response.explanation}`;
+        
+        // Disable options
+        optionsDiv.style.pointerEvents = 'none';
+        optionsDiv.style.opacity = '0.6';
         
     } catch (error) {
         console.error('Failed to submit MCQ answer:', error);
@@ -280,100 +267,190 @@ async function selectMCQOption(questionId, answer) {
 }
 
 // ==========================================
-// CLEANING Step
+// CLEANING AND DRESSING Step (Combined - 9 Actions)
 // ==========================================
 
-function showCleaningStep() {
-    currentSession.currentStep = 'cleaning'; // Update session state
-    showScreen('cleaningScreen');
-    document.getElementById('currentStep').textContent = 'cleaning';
-    currentSession.actionCounter.cleaning = 0;
+function showCleaningAndDressingStep() {
+    currentSession.currentStep = 'cleaning_and_dressing';
+    currentSession.actionCounter = 0;
+    showScreen('cleaningAndDressingScreen');
+    document.getElementById('currentStep').textContent = 'cleaning_and_dressing';
     
-    // Load cleaning actions
-    loadCleaningActions();
+    // Reset counter
+    document.getElementById('actionCounter').textContent = '0';
+    
+    // Load action buttons
+    loadCleaningAndDressingActions();
+    
+    // Clear feedback
+    const feedbackBox = document.getElementById('realtimeFeedback');
+    feedbackBox.innerHTML = '<strong>Real-Time Feedback:</strong><p class="text-muted">Perform actions to receive feedback...</p>';
 }
 
-function loadCleaningActions() {
-    const container = document.getElementById('cleaningActions');
-    
-    const cleaningActions = [
-        { type: 'handwash_1', label: '1. Perform Medical Hand Washing (First Time)' },
-        { type: 'arrange_trolley', label: '2. Arrange Dressing Trolley' },
-        { type: 'handwash_2', label: '3. Perform Medical Hand Washing (Second Time)' },
-        // Step 4: ASK staff nurse to verify cleaning solution (done via chat)
-        { type: 'bring_trolley', label: '5. Bring Trolley to Patient Area' },
-        { type: 'clean_center_to_periphery', label: '6. Clean Wound (Center to Periphery)' },
-        { type: 'dispose_materials', label: '7. Dispose Contaminated Materials' }
+function loadCleaningAndDressingActions() {
+    const actions = [
+        { type: 'action_initial_hand_hygiene', label: '1. Initial Hand Hygiene' },
+        { type: 'action_clean_trolley', label: '2. Clean Dressing Trolley' },
+        { type: 'action_hand_hygiene_after_cleaning', label: '3. Hand Hygiene After Cleaning' },
+        { type: 'action_select_solution', label: '4. Select Cleaning Solution' },
+        // Action 5 is verification - handled by form
+        { type: 'action_select_dressing', label: '6. Select Dressing Materials' },
+        // Action 7 is verification - handled by form
+        { type: 'action_arrange_materials', label: '8. Arrange Materials on Trolley' },
+        { type: 'action_bring_trolley', label: '9. Bring Trolley to Patient' }
     ];
     
+    const container = document.getElementById('cleaningAndDressingActions');
     container.innerHTML = '';
-    cleaningActions.forEach(action => {
+    
+    actions.forEach(action => {
         const button = document.createElement('button');
         button.className = 'action-btn';
-        button.onclick = () => recordAction(action.type, 'cleaning');
+        button.onclick = () => recordAction(action.type);
         button.innerHTML = `
-            <span class="checkmark">âœ”</span>
+            <span class="checkmark">✓</span>
             <span>${action.label}</span>
         `;
         container.appendChild(button);
     });
 }
 
-async function recordAction(actionType, step) {
+async function recordAction(actionType) {
     try {
         const response = await apiCall('/session/action', 'POST', {
             session_id: currentSession.sessionId,
-            action_type: actionType,
-            metadata: { timestamp: new Date().toISOString() }
+            action_type: actionType
         });
         
         // Update counter
-        currentSession.actionCounter[step] = response.total_actions;
-        document.getElementById(`${step}Counter`).textContent = response.total_actions;
+        currentSession.actionCounter++;
+        document.getElementById('actionCounter').textContent = currentSession.actionCounter;
         
-        // Visual feedback on button
-        event.target.closest('.action-btn').classList.add('clicked');
+        // Display real-time feedback
+        displayRealtimeFeedback(response.feedback);
         
     } catch (error) {
         console.error('Failed to record action:', error);
     }
 }
 
-// ==========================================
-// DRESSING Step
-// ==========================================
-
-function showDressingStep() {
-    currentSession.currentStep = 'dressing'; // Update session state
-    showScreen('dressingScreen');
-    document.getElementById('currentStep').textContent = 'dressing';
-    currentSession.actionCounter.dressing = 0;
+async function verifySolution() {
+    const solutionType = document.getElementById('solutionType').value.trim();
+    const expiryDate = document.getElementById('solutionExpiry').value.trim();
+    const packageCondition = document.getElementById('solutionCondition').value;
     
-    // Load dressing actions
-    loadDressingActions();
+    if (!solutionType || !expiryDate) {
+        showError('Please fill in all solution verification fields');
+        return;
+    }
+    
+    try {
+        const response = await apiCall('/session/verify-material', 'POST', {
+            session_id: currentSession.sessionId,
+            material_type: 'solution',
+            material_name: solutionType,
+            expiry_date: expiryDate,
+            package_condition: packageCondition
+        });
+        
+        // Update counter (this is Action 5)
+        currentSession.actionCounter++;
+        document.getElementById('actionCounter').textContent = currentSession.actionCounter;
+        
+        // Display nurse response
+        const responseDiv = document.getElementById('staffNurseCleaningAndDressing');
+        responseDiv.innerHTML = `
+            <div class="verification-response">
+                <strong>Staff Nurse (Verification):</strong>
+                <p>${response.nurse_response}</p>
+            </div>
+        `;
+        
+        // Display real-time feedback
+        displayRealtimeFeedback(response.feedback);
+        
+        // Clear form
+        document.getElementById('solutionType').value = '';
+        document.getElementById('solutionExpiry').value = '';
+        
+    } catch (error) {
+        console.error('Failed to verify solution:', error);
+    }
 }
 
-function loadDressingActions() {
-    const container = document.getElementById('dressingActions');
+async function verifyDressing() {
+    const dressingType = document.getElementById('dressingType').value.trim();
+    const expiryDate = document.getElementById('dressingExpiry').value.trim();
+    const packageCondition = document.getElementById('dressingCondition').value;
     
-    const dressingActions = [
-        { type: 'handwash_before', label: '1. Perform Hand Washing (Before Dressing)' },
-        // Step 2: ASK staff nurse to verify sterile dressing packet (done via chat)
-        { type: 'apply_dressing', label: '3. Apply Dressing to Wound' },
-        { type: 'handwash_after', label: '4. Perform Hand Washing (After Dressing)' }
-    ];
+    if (!dressingType || !expiryDate) {
+        showError('Please fill in all dressing verification fields');
+        return;
+    }
     
-    container.innerHTML = '';
-    dressingActions.forEach(action => {
-        const button = document.createElement('button');
-        button.className = 'action-btn';
-        button.onclick = () => recordAction(action.type, 'dressing');
-        button.innerHTML = `
-            <span class="checkmark">âœ”</span>
-            <span>${action.label}</span>
+    try {
+        const response = await apiCall('/session/verify-material', 'POST', {
+            session_id: currentSession.sessionId,
+            material_type: 'dressing',
+            material_name: dressingType,
+            expiry_date: expiryDate,
+            package_condition: packageCondition
+        });
+        
+        // Update counter (this is Action 7)
+        currentSession.actionCounter++;
+        document.getElementById('actionCounter').textContent = currentSession.actionCounter;
+        
+        // Display nurse response
+        const responseDiv = document.getElementById('staffNurseCleaningAndDressing');
+        responseDiv.innerHTML = `
+            <div class="verification-response">
+                <strong>Staff Nurse (Verification):</strong>
+                <p>${response.nurse_response}</p>
+            </div>
         `;
-        container.appendChild(button);
-    });
+        
+        // Display real-time feedback
+        displayRealtimeFeedback(response.feedback);
+        
+        // Clear form
+        document.getElementById('dressingType').value = '';
+        document.getElementById('dressingExpiry').value = '';
+        
+    } catch (error) {
+        console.error('Failed to verify dressing:', error);
+    }
+}
+
+function displayRealtimeFeedback(feedback) {
+    const feedbackBox = document.getElementById('realtimeFeedback');
+    
+    let statusClass = feedback.status === 'complete' ? 'success' : 'warning';
+    let statusIcon = feedback.status === 'complete' ? '✓' : '⚠️';
+    
+    let html = `
+        <strong>Real-Time Feedback:</strong>
+        <div class="feedback-message ${statusClass}">
+            <span class="feedback-icon">${statusIcon}</span>
+            <p>${feedback.message}</p>
+    `;
+    
+    // Show missing actions if any
+    if (feedback.missing_actions && feedback.missing_actions.length > 0) {
+        html += `
+            <div class="missing-actions">
+                <strong>Missing Prerequisites:</strong>
+                <ul>
+                    ${feedback.missing_actions.map(action => `
+                        <li>${action.replace('action_', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    feedbackBox.innerHTML = html;
 }
 
 // ==========================================
@@ -382,8 +459,19 @@ function loadDressingActions() {
 
 async function askStaffNurse() {
     const step = currentSession.currentStep;
-    const inputId = `nurseQuestion${step.charAt(0).toUpperCase() + step.slice(1)}`;
-    const responseId = `staffNurse${step.charAt(0).toUpperCase() + step.slice(1)}`;
+    let inputId, responseId;
+    
+    // Determine input/response IDs based on step
+    if (step === 'history') {
+        inputId = 'nurseQuestionHistory';
+        responseId = 'staffNurseHistory';
+    } else if (step === 'assessment') {
+        inputId = 'nurseQuestionAssessment';
+        responseId = 'staffNurseAssessment';
+    } else if (step === 'cleaning_and_dressing') {
+        inputId = 'nurseQuestionCleaningAndDressing';
+        responseId = 'staffNurseCleaningAndDressing';
+    }
     
     const input = document.getElementById(inputId);
     const message = input.value.trim();
@@ -399,7 +487,7 @@ async function askStaffNurse() {
         // Display response
         const responseDiv = document.getElementById(responseId);
         responseDiv.innerHTML = `
-            <strong>Staff Nurse:</strong>
+            <strong>Staff Nurse (Guidance):</strong>
             <p>${response.staff_nurse_response}</p>
         `;
         
@@ -424,132 +512,114 @@ async function finishStep(step) {
         // Store next step
         currentSession.nextStep = response.next_step;
         
-        // Show feedback modal
-        displayFeedback(response.evaluation);
+        // Display appropriate feedback/results
+        if (step === 'history') {
+            // History: Show narrated feedback + score
+            displayHistoryFeedback(response.feedback);
+        } else if (step === 'assessment') {
+            // Assessment: Show MCQ results only (no narration)
+            displayAssessmentResults(response.mcq_result);
+        } else if (step === 'cleaning_and_dressing') {
+            // Cleaning & Dressing: Show summary only (no scores/narration)
+            displayPreparationSummary(response.summary);
+        }
         
     } catch (error) {
         console.error('Failed to finish step:', error);
     }
 }
 
-function displayFeedback(evaluation) {
+function displayHistoryFeedback(feedback) {
     const modal = document.getElementById('feedbackModal');
     const content = document.getElementById('feedbackContent');
     
-    let html = '';
+    let html = `
+        <div class="feedback-section">
+            <h3>📋 History Taking Feedback</h3>
+    `;
     
-    // ASSESSMENT step: MCQ-only display (no agent feedback, no scores)
-    if (evaluation.step === 'assessment' && evaluation.mcq_result) {
+    // Narrated feedback (primary)
+    if (feedback.narrated_feedback) {
         html += `
-            <div class="feedback-section">
-                <h3>MCQ Assessment Results</h3>
-                <div class="mcq-summary">
-                    <div class="mcq-summary-header">
-                        <span><strong>Summary:</strong> ${evaluation.mcq_result.summary}</span>
-                        <span class="mcq-score-display">${evaluation.mcq_result.correct_count}/${evaluation.mcq_result.total_questions}</span>
-                    </div>
-                    <div class="mcq-results">
-        `;
-        
-        if (evaluation.mcq_result.feedback) {
-            evaluation.mcq_result.feedback.forEach(item => {
-                const statusClass = item.status === 'correct' ? 'correct' : 
-                                   item.status === 'incorrect' ? 'incorrect' : 'not_answered';
-                const statusText = item.status === 'correct' ? 'Correct' : 
-                                  item.status === 'incorrect' ? 'Incorrect' : 'Not Answered';
-                
-                html += `
-                    <div class="mcq-result-item ${statusClass}">
-                        <strong>Q: ${item.question}</strong><br>
-                        <span class="mcq-status-badge ${statusClass}">${statusText}</span><br>
-                        ${item.student_answer ? `Your answer: ${item.student_answer}<br>` : ''}
-                        Correct answer: ${item.correct_answer}<br>
-                        <em>${item.explanation}</em>
-                    </div>
-                `;
-            });
-        }
-        
-        html += `</div></div></div>`;
-        
-        content.innerHTML = html;
-        modal.style.display = 'flex';
-        return;
-    }
-    
-    // OTHER STEPS: Normal agent feedback display
-    
-    // Narrated Feedback (Primary)
-    if (evaluation.narrated_feedback) {
-        html += `
-            <div class="feedback-section">
-                <h3>Feedback Summary</h3>
-                <div class="narrated-feedback">
-                    ${evaluation.narrated_feedback.message_text}
-                </div>
+            <div class="narrated-feedback">
+                ${feedback.narrated_feedback.message_text}
             </div>
         `;
     }
     
-    // Scores
-    if (evaluation.scores) {
+    // Score display
+    if (feedback.score !== undefined) {
+        const scorePercent = (feedback.score * 100).toFixed(0);
         html += `
-            <div class="feedback-section">
-                <h3>Performance Scores</h3>
-                <div class="scores-display">
-        `;
-        
-        // Agent scores
-        if (evaluation.scores.agent_scores) {
-            for (const [agent, score] of Object.entries(evaluation.scores.agent_scores)) {
-                const displayName = agent.replace('Agent', '');
-                html += `
-                    <div class="score-card">
-                        <div class="score-label">${displayName}</div>
-                        <div class="score-value">${score.toFixed(2)}</div>
-                        <div class="score-bar">
-                            <div class="score-fill" style="width: ${score * 100}%"></div>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-        
-        // Overall score
-        if (evaluation.scores.step_quality_indicator !== undefined) {
-            html += `
-                <div class="score-card">
-                    <div class="score-label">Overall Quality</div>
-                    <div class="score-value">${evaluation.scores.step_quality_indicator.toFixed(2)}</div>
-                    <div class="score-bar">
-                        <div class="score-fill" style="width: ${evaluation.scores.step_quality_indicator * 100}%"></div>
-                    </div>
+            <div class="score-display">
+                <div class="score-label">Step Quality Score</div>
+                <div class="score-value">${feedback.score.toFixed(2)}</div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${scorePercent}%"></div>
                 </div>
-            `;
-        }
-        
-        html += `</div></div>`;
+                <div class="score-interpretation">${feedback.interpretation || ''}</div>
+            </div>
+        `;
     }
     
-    // Raw Feedback (Detailed) - NOT for ASSESSMENT step
-    if (evaluation.raw_feedback && evaluation.raw_feedback.length > 0) {
-        html += `
-            <div class="feedback-section">
-                <h3>Detailed Agent Feedback</h3>
-                <div class="raw-feedback">
-        `;
-        
-        evaluation.raw_feedback.forEach(item => {
-            html += `
-                <div class="feedback-item ${item.category}">
-                    <div class="feedback-category">${item.category}</div>
-                    <p>${item.text}</p>
+    html += '</div>';
+    
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function displayAssessmentResults(mcqResult) {
+    const modal = document.getElementById('feedbackModal');
+    const content = document.getElementById('feedbackContent');
+    
+    const scorePercent = (mcqResult.score * 100).toFixed(0);
+    
+    let html = `
+        <div class="feedback-section">
+            <h3>📊 Assessment Results</h3>
+            <div class="mcq-summary">
+                <div class="mcq-score-large">
+                    ${mcqResult.correct_count} / ${mcqResult.total_questions}
                 </div>
-            `;
-        });
-        
-        html += `</div></div>`;
-    }
+                <div class="mcq-summary-text">
+                    ${mcqResult.summary}
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${scorePercent}%"></div>
+                </div>
+            </div>
+    `;
+    
+    // Note: No narrated feedback for assessment - MCQ explanations already provided
+    html += `
+            <div class="info-box">
+                <strong>ℹ️ Note:</strong> Detailed explanations were provided for each question during the assessment.
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function displayPreparationSummary(summary) {
+    const modal = document.getElementById('feedbackModal');
+    const content = document.getElementById('feedbackContent');
+    
+    let html = `
+        <div class="feedback-section">
+            <h3>🔧 Preparation Summary</h3>
+            <div class="preparation-summary">
+                <p>${summary.message}</p>
+                <div class="action-count">
+                    <strong>Actions Completed:</strong> ${summary.actions_completed} / ${summary.expected_actions}
+                </div>
+            </div>
+            <div class="info-box">
+                <strong>ℹ️ Note:</strong> Real-time feedback was provided during preparation. No final score is given for this step.
+            </div>
+        </div>
+    `;
     
     content.innerHTML = html;
     modal.style.display = 'flex';
@@ -567,11 +637,8 @@ function continueToNextStep() {
         case 'assessment':
             showAssessmentStep();
             break;
-        case 'cleaning':
-            showCleaningStep();
-            break;
-        case 'dressing':
-            showDressingStep();
+        case 'cleaning_and_dressing':
+            showCleaningAndDressingStep();
             break;
         case 'completed':
             showCompletionScreen();
@@ -586,7 +653,7 @@ function continueToNextStep() {
 // ==========================================
 
 function showCompletionScreen() {
-    currentSession.currentStep = 'completed'; // Update session state
+    currentSession.currentStep = 'completed';
     showScreen('completionScreen');
     document.getElementById('currentStep').textContent = 'completed';
     
@@ -595,7 +662,12 @@ function showCompletionScreen() {
         <h3>Session Summary</h3>
         <p><strong>Session ID:</strong> ${currentSession.sessionId}</p>
         <p><strong>Scenario:</strong> ${currentSession.scenarioMetadata.title}</p>
-        <p>All procedural steps have been completed successfully!</p>
+        <div class="completion-message">
+            <p>✓ Patient History Completed</p>
+            <p>✓ Wound Assessment Completed</p>
+            <p>✓ Cleaning & Dressing Preparation Completed</p>
+        </div>
+        <p class="success-message">All procedural steps have been completed successfully!</p>
     `;
 }
 
@@ -604,6 +676,6 @@ function showCompletionScreen() {
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('VR Nursing Education System - Test UI Loaded');
+    console.log('VR Nursing Education System - Test UI Loaded (Updated)');
     showScreen('startScreen');
 });
