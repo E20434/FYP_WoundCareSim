@@ -62,7 +62,6 @@ class StepInput(BaseModel):
     step: str
     user_input: Optional[str] = None
     student_mcq_answers: Optional[Dict[str, str]] = None
-    # Note: Actions are now handled by separate /action endpoint
 
 
 class StaffNurseInput(BaseModel):
@@ -102,13 +101,11 @@ def start_session(payload: StartSessionRequest):
 def get_session_info(session_id: str):
     """
     Get current session state and information.
-    NEW: Added for Test UI to fetch session details.
     """
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
-    # Return session info with scenario metadata
     return {
         "session_id": session_id,
         "scenario_id": session["scenario_id"],
@@ -167,7 +164,6 @@ async def send_message(payload: MessageInput):
 async def ask_staff_nurse(payload: StaffNurseInput):
     """
     Ask the staff nurse for guidance (available at any time).
-    NEW: Added for Test UI staff nurse interaction.
     
     The staff nurse provides high-level guidance only.
     Does not evaluate, approve, or block the student.
@@ -202,9 +198,9 @@ async def ask_staff_nurse(payload: StaffNurseInput):
 @router.post("/action")
 def record_action(payload: ActionInput):
     """
-    Record a clinical action (CLEANING/DRESSING steps).
-    NEW: Added for Test UI to record actions without completing step.
+    Record a preparation action with REAL-TIME FEEDBACK.
     
+    For CLEANING_AND_DRESSING step, provides immediate feedback on each action.
     Actions are accumulated and evaluated when step completes.
     """
     session = session_manager.get_session(payload.session_id)
@@ -213,8 +209,8 @@ def record_action(payload: ActionInput):
     
     current_step = session["current_step"]
     
-    # Only allow actions for CLEANING and DRESSING steps
-    if current_step not in [Step.CLEANING.value, Step.DRESSING.value]:
+    # Only allow actions for CLEANING_AND_DRESSING step
+    if current_step != Step.CLEANING_AND_DRESSING.value:
         raise HTTPException(
             status_code=400,
             detail=f"Actions not allowed in {current_step} step"
@@ -228,12 +224,24 @@ def record_action(payload: ActionInput):
         metadata=payload.metadata
     )
     
+    # NEW: Get real-time feedback for this action
+    performed_actions = [
+        event["action_type"] 
+        for event in session.get("action_events", [])
+    ]
+    
+    real_time_feedback = clinical_agent.get_real_time_feedback(
+        action_type=payload.action_type,
+        performed_actions=performed_actions
+    )
+    
     return {
         "action_recorded": True,
         "action_type": payload.action_type,
         "step": current_step,
         "timestamp": result.get("timestamp"),
-        "total_actions": len(session.get("action_events", []))
+        "total_actions": len(session.get("action_events", [])),
+        "real_time_feedback": real_time_feedback  # NEW: Immediate feedback
     }
 
 
@@ -241,7 +249,6 @@ def record_action(payload: ActionInput):
 def answer_mcq_question(payload: MCQAnswerInput):
     """
     Evaluate a single MCQ answer immediately.
-    NEW: Added for Test UI per-question feedback.
     
     Returns immediate feedback without LLM evaluation.
     """
@@ -285,11 +292,11 @@ def answer_mcq_question(payload: MCQAnswerInput):
 @router.post("/step")
 async def run_step(payload: StepInput):
     """
-    Unified step handler (Week-9 FINAL - ASSESSMENT Agent Evaluation Removed).
+    Unified step handler with CLEANING_AND_DRESSING step support.
     
     Handles step completion and evaluation for all steps.
     
-    ASSESSMENT step now uses MCQ-only evaluation (no agents).
+    CLEANING_AND_DRESSING step uses ClinicalAgent for evaluation.
     """
     session = session_manager.get_session(payload.session_id)
     if not session:
@@ -336,11 +343,10 @@ async def run_step(payload: StepInput):
 
     elif current_step == Step.ASSESSMENT.value:
         # ASSESSMENT step uses MCQ-only evaluation (no agents)
-        # Evaluator outputs remain empty for this step
-        # MCQ evaluation is handled separately in aggregate_evaluations
         pass
 
-    else:  # CLEANING / DRESSING
+    elif current_step == Step.CLEANING_AND_DRESSING.value:
+        # CLEANING_AND_DRESSING step evaluation with ClinicalAgent
         evaluator_outputs.append(
             await clinical_agent.evaluate(
                 current_step=current_step,
@@ -353,7 +359,6 @@ async def run_step(payload: StepInput):
     # ---------------------------------------------
     # Aggregate + narrate feedback
     # ---------------------------------------------
-    # For ASSESSMENT, use stored answers
     if current_step == Step.ASSESSMENT.value:
         mcq_answers = session.get("mcq_answers", payload.student_mcq_answers or {})
     else:
@@ -370,16 +375,14 @@ async def run_step(payload: StepInput):
     # Cleanup: Clear step-specific data after evaluation
     # ---------------------------------------------
     if current_step == Step.HISTORY.value:
-        # Clear conversation history
         conversation_manager.clear_step(payload.session_id, Step.HISTORY.value)
     
     elif current_step == Step.ASSESSMENT.value:
-        # Clear MCQ answers
         session = session_manager.get_session(payload.session_id)
         if session:
             session["mcq_answers"] = {}
     
-    elif current_step in [Step.CLEANING.value, Step.DRESSING.value]:
+    elif current_step == Step.CLEANING_AND_DRESSING.value:
         # Clear action events
         session = session_manager.get_session(payload.session_id)
         if session:

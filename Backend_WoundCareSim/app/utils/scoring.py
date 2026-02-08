@@ -24,11 +24,8 @@ STEP_WEIGHTS = {
         # ASSESSMENT uses MCQ-only evaluation (no agent weights)
         # No evaluator agents run for this step
     },
-    "cleaning": {
-        "ClinicalAgent": 1.0,  # Only clinical evaluation matters for cleaning
-    },
-    "dressing": {
-        "ClinicalAgent": 1.0,  # Only clinical evaluation matters for dressing
+    "cleaning_and_dressing": {
+        "ClinicalAgent": 1.0,  # Clinical evaluation for preparation (100%)
     },
 }
 
@@ -60,6 +57,13 @@ def aggregate_scores(
     - CommunicationAgent score (40% weight)
     - KnowledgeAgent score (60% weight)
     - Composite quality indicator
+    
+    For cleaning_and_dressing:
+    - ClinicalAgent score (100% weight)
+    - Composite quality indicator based on:
+      * Action completeness (9 actions required)
+      * Mandatory actions (4 critical actions)
+      * Sequence correctness
     
     IMPORTANT:
     - No thresholds
@@ -110,15 +114,16 @@ def _interpret_composite_score(score: float, step: str) -> str:
         else:
             return "History-taking needs significant improvement"
     
-    elif step in ["cleaning", "dressing"]:
+    elif step == "cleaning_and_dressing":
         if score >= 0.85:
-            return "Excellent procedural technique"
+            return "Excellent preparation - all safety protocols followed correctly"
         elif score >= 0.70:
-            return "Good technique with minor issues"
+            return "Good preparation with minor gaps in completeness or sequencing"
         elif score >= 0.50:
-            return "Adequate technique with safety concerns"
+            return "Adequate preparation but missing some critical safety steps"
         else:
-            return "Procedural technique needs significant improvement"
+            return "Preparation needs significant improvement - major safety concerns present"
     
     else:
         return "Performance assessment complete"
+    

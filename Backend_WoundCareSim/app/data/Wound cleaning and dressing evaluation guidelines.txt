@@ -1,0 +1,116 @@
+CLEANING AND DRESSING PREPARATION GUIDELINES
+Clean Surgical Wound Care
+
+PURPOSE
+To prepare all equipment, solutions, and materials safely and correctly before wound care.
+This is a PREPARATION step only - no actual wound cleaning or dressing application occurs.
+
+CLINICAL CONTEXT
+- Wound type: Clean surgical wound
+- Location: Left forearm
+- Prescribed cleaning solution: Surgical spirit
+- Prescribed dressing type: Dry dressing
+
+CRITICAL PRINCIPLES
+1. Infection control through repeated hand hygiene
+2. Safe verification with staff nurse (mandatory)
+3. Correct sequencing of preparation actions
+4. No assumptions - every action must be explicit
+
+REQUIRED ACTIONS IN SEQUENCE
+
+Action 1: Initial Hand Hygiene
+- Wash hands according to infection control guidelines
+- Purpose: Prevents contamination before touching equipment
+- CRITICAL: Must be done BEFORE any equipment contact
+
+Action 2: Clean the Dressing Trolley
+- Clean and disinfect the trolley surface
+- Ensure surface is visibly clean and dry
+- Purpose: Removes environmental contaminants
+
+Action 3: Hand Hygiene After Trolley Cleaning
+- Wash hands again after trolley cleaning
+- Purpose: Prevents re-contamination after contact with cleaning surfaces
+- CRITICAL: Hand hygiene is required AFTER cleaning tasks
+
+Action 4: Select Prescribed Cleaning Solution
+- Take the prescribed cleaning solution (surgical spirit)
+- Purpose: Ensures correct solution per medical orders
+
+Action 5: Verify Cleaning Solution with Staff Nurse (MANDATORY)
+- Check solution name
+- Check expiration date
+- Verbally confirm with staff nurse
+- Purpose: Prevents medication errors
+- CRITICAL: Cannot proceed without staff nurse verification
+
+Action 6: Select Dressing Materials
+- Take required dressing materials
+- Ensure dressing type matches prescription (dry dressing)
+- Purpose: Ensures appropriate materials prepared
+
+Action 7: Verify Sterile Dressing Packet with Staff Nurse (MANDATORY)
+- Check packet integrity (no tears, no moisture)
+- Check expiration date
+- Verbally confirm sterility with staff nurse
+- Purpose: Maintains aseptic technique
+- CRITICAL: Cannot proceed without staff nurse verification
+
+Action 8: Arrange Solutions and Materials on Trolley
+- Place verified items neatly on trolley
+- Organize for efficient workflow
+- Purpose: Ensures organized, efficient setup
+
+Action 9: Bring Prepared Trolley to Patient Area
+- Transport prepared trolley to bedside/treatment area
+- Purpose: Marks completion of preparation
+- CRITICAL: Final action confirming readiness
+
+ACTIONS NOT INCLUDED IN THIS STEP
+- Actual wound cleaning
+- Actual dressing application
+- Touching the wound
+- Removing existing dressings
+- Applying solutions to wound
+
+This step is PREPARATORY ONLY.
+
+EVALUATION CRITERIA
+
+MANDATORY ACTIONS (Cannot be skipped):
+1. Hand hygiene before equipment contact (Action 1)
+2. Hand hygiene after trolley cleaning (Action 3)
+3. Cleaning solution verification with staff nurse (Action 5)
+4. Dressing packet verification with staff nurse (Action 7)
+
+CRITICAL SEQUENCE VIOLATIONS:
+- Touching equipment before initial hand hygiene
+- Skipping hand hygiene after trolley cleaning
+- Not verifying solutions/materials with staff nurse
+- Bringing trolley to patient before completing preparation
+
+PATIENT SAFETY PRIORITIES:
+1. Infection control (hand hygiene compliance)
+2. Medication safety (solution verification)
+3. Aseptic technique (sterile material verification)
+4. Correct sequencing (prevents cross-contamination)
+
+COMMON ERRORS TO DETECT:
+- Missing hand hygiene steps
+- Skipping staff nurse verification
+- Incorrect solution selection
+- Using expired materials
+- Wrong dressing type
+- Improper sequencing
+- Incomplete preparation before bringing trolley
+
+FEEDBACK PRINCIPLES:
+- Real-time feedback when critical actions are missed
+- Final feedback summarizes overall preparation quality
+- Formative approach focusing on learning
+- Emphasizes patient safety implications
+
+EDUCATIONAL FOCUS:
+This step teaches that errors during preparation can compromise patient safety
+even before wound care begins. Safe preparation is a patient-safety responsibility.

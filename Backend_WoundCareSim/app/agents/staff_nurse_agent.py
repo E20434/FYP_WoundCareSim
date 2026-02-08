@@ -21,7 +21,8 @@ class StaffNurseAgent(BaseAgent):
         "next step",
         "can i proceed",
         "ready",
-        "move on"
+        "move on",
+        "complete"
     ]
 
     VERIFICATION_KEYWORDS = [
@@ -33,7 +34,12 @@ class StaffNurseAgent(BaseAgent):
         "can you check",
         "look at this",
         "expired",
-        "expiration"
+        "expiration",
+        "solution",
+        "dressing packet",
+        "sterile",
+        "surgical spirit",
+        "dry dressing"
     ]
 
     def __init__(self):
@@ -67,12 +73,12 @@ class StaffNurseAgent(BaseAgent):
         current_guidance = STEP_GUIDANCE.get(current_step, "")
         next_guidance = STEP_GUIDANCE.get(next_step, "") if next_step else ""
 
-        # VERIFICATION MODE (for cleaning/dressing steps)
-        if is_verification and current_step in ["cleaning", "dressing"]:
+        # VERIFICATION MODE (for cleaning_and_dressing step)
+        if is_verification and current_step == "cleaning_and_dressing":
             system_prompt = (
                 "You are a supervising staff nurse verifying materials with a nursing student.\n\n"
                 "VERIFICATION ROLE:\n"
-                "- The student is showing you a solution bottle or dressing packet.\n"
+                "- The student is showing you a cleaning solution or dressing packet.\n"
                 "- Your job is to verify it is safe to use based on what they tell you.\n"
                 "- The student should state: name/type, expiration date, package integrity.\n"
                 "- Listen to what the student says about the item.\n"
@@ -83,11 +89,11 @@ class StaffNurseAgent(BaseAgent):
                 "- Be supportive and professional.\n"
                 "- Use simple, clear language.\n"
                 "- Acknowledge what the student stated.\n"
-                "- Give specific feedback: 'Normal Saline 0.9%, expires [date], bottle intact - looks good.'\n"
+                "- Give specific feedback: 'Surgical spirit, expires [date], bottle intact - looks good.'\n"
                 "- End with clear approval: 'You may use it' or 'You can proceed.'\n\n"
                 "EXPECTED MATERIALS:\n"
-                "- CLEANING step: Normal Saline 0.9% solution + sterile dressing packet\n"
-                "- DRESSING step: Sterile dressing packet\n\n"
+                "- Cleaning solution: Surgical spirit\n"
+                "- Dressing packet: Dry dressing (sterile)\n\n"
                 "VERIFICATION PROCESS:\n"
                 "- If student states complete info → Acknowledge and approve\n"
                 "- If student provides incomplete info → Ask for missing details\n"

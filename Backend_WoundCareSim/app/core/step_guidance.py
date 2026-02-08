@@ -5,10 +5,9 @@ STEP_GUIDANCE = {
     "assessment": (
         "In this step, you should assess the wound by answering the provided multiple-choice questions."
     ),
-    "cleaning": (
-        "In this step, you are expected to perform the wound cleaning process."
-    ),
-    "dressing": (
-        "In this step, you are expected to perform the wound dressing process."
+    "cleaning_and_dressing": (
+        "In this step, you should prepare the dressing trolley, cleaning solution, and sterile materials. "
+        "This includes hand hygiene, trolley cleaning, selecting materials, and verifying them with the staff nurse. "
+        "You will NOT perform actual wound cleaning or dressing in this step - this is preparation only."
     )
 }
