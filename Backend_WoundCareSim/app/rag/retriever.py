@@ -69,7 +69,7 @@ async def retrieve_with_rag(
                             rag_text += getattr(part, "text", "")
 
         rag_text = rag_text.strip()
-
+        print(f"RAG retrieved text: {rag_text}")
         if not rag_text:
             logger.warning("RAG returned empty context")
 

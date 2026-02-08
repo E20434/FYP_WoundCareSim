@@ -19,112 +19,127 @@ CRITICAL PRINCIPLES
 
 REQUIRED ACTIONS IN SEQUENCE
 
-Action 1: Initial Hand Hygiene
+Action: action_initial_hand_hygiene
+Description: Initial Hand Hygiene
 - Wash hands according to infection control guidelines
 - Purpose: Prevents contamination before touching equipment
 - CRITICAL: Must be done BEFORE any equipment contact
 - Prerequisites: None (first action)
 
-Action 2: Clean the Dressing Trolley
+Action: action_clean_trolley
+Description: Clean the Dressing Trolley
 - Clean and disinfect the trolley surface
 - Ensure surface is visibly clean and dry
 - Purpose: Removes environmental contaminants
-- Prerequisites: Action 1 (Initial Hand Hygiene)
+- Prerequisites: action_initial_hand_hygiene
 
-Action 3: Hand Hygiene After Trolley Cleaning
+Action: action_hand_hygiene_after_cleaning
+Description: Hand Hygiene After Trolley Cleaning
 - Wash hands again after trolley cleaning
 - Purpose: Prevents re-contamination after contact with cleaning surfaces
 - CRITICAL: Hand hygiene is required AFTER cleaning tasks
-- Prerequisites: Actions 1, 2
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley
 
-Action 4: Select Prescribed Cleaning Solution
+Action: action_select_solution
+Description: Select Prescribed Cleaning Solution
 - Take the prescribed cleaning solution (surgical spirit)
 - Purpose: Ensures correct solution per medical orders
-- Prerequisites: Actions 1, 2, 3
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning
 
-Action 5: Verify Cleaning Solution with Staff Nurse (MANDATORY)
+Action: action_verify_solution
+Description: Verify Cleaning Solution with Staff Nurse (MANDATORY)
 - Check solution name
 - Check expiration date
 - Check bottle integrity
 - Verbally confirm with staff nurse
 - Purpose: Prevents medication errors
 - CRITICAL: Cannot proceed without staff nurse verification
-- Prerequisites: Actions 1, 2, 3, 4
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution
 
-Action 6: Select Dressing Materials
+Action: action_select_dressing
+Description: Select Dressing Materials
 - Take required dressing materials
 - Ensure dressing type matches prescription (dry dressing)
 - Purpose: Ensures appropriate materials prepared
-- Prerequisites: Actions 1, 2, 3, 4, 5
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution
 
-Action 7: Verify Sterile Dressing Packet with Staff Nurse (MANDATORY)
+Action: action_verify_dressing
+Description: Verify Sterile Dressing Packet with Staff Nurse (MANDATORY)
 - Check packet integrity (no tears, no moisture)
 - Check expiration date
 - Verbally confirm sterility with staff nurse
 - Purpose: Maintains aseptic technique
 - CRITICAL: Cannot proceed without staff nurse verification
-- Prerequisites: Actions 1, 2, 3, 4, 5, 6
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing
 
-Action 8: Arrange Solutions and Materials on Trolley
+Action: action_arrange_materials
+Description: Arrange Solutions and Materials on Trolley
 - Place verified items neatly on trolley
 - Organize for efficient workflow
 - Purpose: Ensures organized, efficient setup
-- Prerequisites: Actions 1, 2, 3, 4, 5, 6, 7
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing, action_verify_dressing
 
-Action 9: Bring Prepared Trolley to Patient Area
+Action: action_bring_trolley
+Description: Bring Prepared Trolley to Patient Area
 - Transport prepared trolley to bedside/treatment area
 - Purpose: Marks completion of preparation
 - CRITICAL: Final action confirming readiness
-- Prerequisites: Actions 1, 2, 3, 4, 5, 6, 7, 8
+- Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing, action_verify_dressing, action_arrange_materials
 
 PREREQUISITE MAPPING FOR REAL-TIME FEEDBACK
 
 When evaluating if a student can perform an action, check ALL prerequisites:
 
-Action 1: Initial Hand Hygiene
-  Required before: None (this is the first action)
+action_initial_hand_hygiene
+  Prerequisites: None (this is the first action)
   
-Action 2: Clean the Dressing Trolley
-  Required before: Initial Hand Hygiene (Action 1)
+action_clean_trolley
+  Prerequisites: action_initial_hand_hygiene
   
-Action 3: Hand Hygiene After Trolley Cleaning
-  Required before: Initial Hand Hygiene (Action 1), Clean Trolley (Action 2)
+action_hand_hygiene_after_cleaning
+  Prerequisites: action_initial_hand_hygiene, action_clean_trolley
   
-Action 4: Select Prescribed Cleaning Solution
-  Required before: Actions 1, 2, 3
+action_select_solution
+  Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning
   
-Action 5: Verify Cleaning Solution with Staff Nurse
-  Required before: Actions 1, 2, 3, 4
-  Missing any of 1-4 means verification cannot be properly completed
+action_verify_solution
+  Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution
+  Missing any of these means verification cannot be properly completed
   
-Action 6: Select Dressing Materials
-  Required before: Actions 1, 2, 3, 4, 5
+action_select_dressing
+  Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution
   
-Action 7: Verify Sterile Dressing Packet with Staff Nurse
-  Required before: Actions 1, 2, 3, 4, 5, 6
-  Missing any of 1-6 means verification cannot be properly completed
+action_verify_dressing
+  Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing
+  Missing any of these means verification cannot be properly completed
   
-Action 8: Arrange Solutions and Materials on Trolley
-  Required before: Actions 1, 2, 3, 4, 5, 6, 7
+action_arrange_materials
+  Prerequisites: action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing, action_verify_dressing
   Cannot arrange materials that haven't been selected and verified
   
-Action 9: Bring Prepared Trolley to Patient Area
-  Required before: ALL previous actions (1-8)
+action_bring_trolley
+  Prerequisites: ALL previous actions (action_initial_hand_hygiene, action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing, action_verify_dressing, action_arrange_materials)
   This is the final action and requires complete preparation
 
 REAL-TIME FEEDBACK EXAMPLES
 
-Example 1: Student does Action 1, then jumps to Action 5
-Missing: Actions 2, 3, 4
-Feedback: "Before verifying the cleaning solution, you must: clean the trolley (Action 2), perform hand hygiene after cleaning (Action 3), and select the cleaning solution (Action 4)."
+Example 1: Student does action_initial_hand_hygiene, then jumps to action_verify_solution
+Completed: [action_initial_hand_hygiene]
+Current: action_verify_solution
+Missing: action_clean_trolley, action_hand_hygiene_after_cleaning, action_select_solution
+Feedback: "Before verifying the cleaning solution, you must: clean the trolley, perform hand hygiene after cleaning, and select the cleaning solution."
 
-Example 2: Student does Actions 1, 2, then jumps to Action 7
-Missing: Actions 3, 4, 5, 6
-Feedback: "Before verifying the dressing packet, you must: perform hand hygiene after trolley cleaning (Action 3), select cleaning solution (Action 4), verify solution with nurse (Action 5), and select dressing materials (Action 6)."
+Example 2: Student does action_initial_hand_hygiene, action_clean_trolley, then jumps to action_verify_dressing
+Completed: [action_initial_hand_hygiene, action_clean_trolley]
+Current: action_verify_dressing
+Missing: action_hand_hygiene_after_cleaning, action_select_solution, action_verify_solution, action_select_dressing
+Feedback: "Before verifying the dressing packet, you must: perform hand hygiene after trolley cleaning, select cleaning solution, verify solution with nurse, and select dressing materials."
 
-Example 3: Student does Actions 1-7 correctly in sequence, then performs Action 8
+Example 3: Student does actions in correct sequence - action_initial_hand_hygiene, then action_clean_trolley
+Completed: [action_initial_hand_hygiene]
+Current: action_clean_trolley
 Missing: None
-Feedback: "Good! You've completed all prerequisite steps. Arranging materials on the trolley now is appropriate."
+Feedback: "Good! Cleaning the trolley is the correct next step after hand hygiene."
 
 ACTIONS NOT INCLUDED IN THIS STEP
 - Actual wound cleaning
@@ -138,16 +153,16 @@ This step is PREPARATORY ONLY.
 EVALUATION CRITERIA
 
 MANDATORY ACTIONS (Cannot be skipped):
-1. Hand hygiene before equipment contact (Action 1)
-2. Hand hygiene after trolley cleaning (Action 3)
-3. Cleaning solution verification with staff nurse (Action 5)
-4. Dressing packet verification with staff nurse (Action 7)
+1. action_initial_hand_hygiene - Hand hygiene before equipment contact
+2. action_hand_hygiene_after_cleaning - Hand hygiene after trolley cleaning
+3. action_verify_solution - Cleaning solution verification with staff nurse
+4. action_verify_dressing - Dressing packet verification with staff nurse
 
 CRITICAL SEQUENCE VIOLATIONS:
-- Touching equipment before initial hand hygiene
-- Skipping hand hygiene after trolley cleaning
-- Not verifying solutions/materials with staff nurse
-- Bringing trolley to patient before completing preparation
+- Touching equipment before action_initial_hand_hygiene
+- Skipping action_hand_hygiene_after_cleaning
+- Not performing action_verify_solution or action_verify_dressing
+- Performing action_bring_trolley before completing preparation
 - Performing any action without completing its prerequisites
 
 PATIENT SAFETY PRIORITIES:
