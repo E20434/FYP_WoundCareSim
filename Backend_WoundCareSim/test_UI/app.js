@@ -433,6 +433,13 @@ async function selectMCQOption(questionId, answer) {
         // Disable options
         optionsDiv.style.pointerEvents = 'none';
         optionsDiv.style.opacity = '0.6';
+
+        if (response.feedback_audio && response.feedback_audio.audio_base64) {
+            playAudioFromBase64(
+                response.feedback_audio.audio_base64,
+                response.feedback_audio.content_type
+            );
+        }
         
     } catch (error) {
         console.error('Failed to submit MCQ answer:', error);
@@ -679,7 +686,7 @@ async function finishStep(step) {
             displayHistoryFeedback(response.feedback, response.feedback_audio);
         } else if (step === 'assessment') {
             // Assessment: Show MCQ results only (no narration)
-            displayAssessmentResults(response.mcq_result);
+            displayAssessmentResults(response.mcq_result, response.summary_audio);
         } else if (step === 'cleaning_and_dressing') {
             // Cleaning & Dressing: Show summary only (no scores/narration)
             displayPreparationSummary(response.summary);
@@ -733,7 +740,7 @@ function displayHistoryFeedback(feedback, feedbackAudio) {
     }
 }
 
-function displayAssessmentResults(mcqResult) {
+function displayAssessmentResults(mcqResult, summaryAudio) {
     const modal = document.getElementById('feedbackModal');
     const content = document.getElementById('feedbackContent');
     
@@ -765,6 +772,10 @@ function displayAssessmentResults(mcqResult) {
     
     content.innerHTML = html;
     modal.style.display = 'flex';
+
+    if (summaryAudio && summaryAudio.audio_base64) {
+        playAudioFromBase64(summaryAudio.audio_base64, summaryAudio.content_type);
+    }
 }
 
 function displayPreparationSummary(summary) {

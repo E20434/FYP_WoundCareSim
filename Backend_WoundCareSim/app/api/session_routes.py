@@ -519,7 +519,7 @@ async def record_action(payload: ActionInput):
 
 
 @router.post("/mcq-answer")
-def answer_mcq_question(payload: MCQAnswerInput):
+async def answer_mcq_question(payload: MCQAnswerInput):
     """
     Evaluate a single MCQ answer immediately.
     
@@ -561,11 +561,16 @@ def answer_mcq_question(payload: MCQAnswerInput):
     print(f"Result: {'✓ CORRECT' if is_correct else '✗ INCORRECT'}")
     print("="*60 + "\n")
     
+    explanation = question.get("explanation", "No explanation provided.")
+    correctness_text = "correct" if is_correct else "incorrect"
+    feedback_text = f"Your answer is {correctness_text}. {explanation}"
+
     return {
         "question_id": payload.question_id,
         "is_correct": is_correct,
-        "explanation": question.get("explanation", "No explanation provided."),
-        "status": "correct" if is_correct else "incorrect"
+        "explanation": explanation,
+        "status": "correct" if is_correct else "incorrect",
+        "feedback_audio": await _safe_tts(feedback_text, role="assessment_feedback"),
     }
 
 
@@ -735,11 +740,22 @@ async def run_step(payload: StepInput):
         }
     
     if current_step == Step.ASSESSMENT.value:
+        mcq_result = evaluation.get("mcq_result")
+        summary_text = None
+        if mcq_result:
+            summary_text = (
+                f"You answered {mcq_result.get('correct_count')} out of "
+                f"{mcq_result.get('total_questions')} questions correctly."
+            )
         return {
             "session_id": payload.session_id,
             "current_step": current_step,
             "next_step": next_step,
-            "mcq_result": evaluation.get("mcq_result")
+            "mcq_result": mcq_result,
+            "summary_audio": await _safe_tts(
+                summary_text or "",
+                role="assessment_feedback",
+            ),
         }
     
     return {

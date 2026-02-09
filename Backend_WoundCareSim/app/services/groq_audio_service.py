@@ -77,6 +77,7 @@ ROLE_VOICE_MAP: Dict[str, str] = {
     "patient": "austin",
     "staff_nurse": "autumn",
     "feedback": "daniel",
+    "assessment_feedback": "daniel",
 }
 
 _PATIENT_PREFIX_RE = re.compile(r"^\s*patient\s*:\s*", re.IGNORECASE)
