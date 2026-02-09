@@ -17,7 +17,7 @@ from app.agents.staff_nurse_agent import StaffNurseAgent
 from app.agents.feedback_narrator_agent import FeedbackNarratorAgent
 
 from app.utils.mcq_evaluator import MCQEvaluator
-from app.services.groq_audio_service import GroqAudioService
+from app.services.groq_audio_service import GroqAudioService, synthesize_speech
 
 router = APIRouter(prefix="/session", tags=["Session"])
 
@@ -103,14 +103,14 @@ def is_action_already_performed(session: dict, action_type: str) -> bool:
     return any(event["action_type"] == action_type for event in action_events)
 
 
-async def _safe_tts(text: str) -> Optional[Dict[str, Any]]:
+async def _safe_tts(text: str, role: str) -> Optional[Dict[str, Any]]:
     """
     Convert text to speech without breaking request flow.
     """
     if not text:
         return None
     try:
-        return await audio_service.text_to_speech(text=text)
+        return await synthesize_speech(text=text, role=role, audio_service=audio_service)
     except Exception as exc:
         print(f"⚠️  TTS failed: {exc}")
         return None
@@ -192,7 +192,7 @@ async def send_message(payload: MessageInput):
         response
     )
 
-    patient_audio = await _safe_tts(response)
+    patient_audio = await _safe_tts(response, role="patient")
 
     return {"patient_response": response, "patient_audio": patient_audio}
 
@@ -246,9 +246,7 @@ async def ask_staff_nurse(payload: StaffNurseInput):
         next_step=next_step_str
     )
 
-    staff_nurse_audio = None
-    if current_step == Step.HISTORY.value:
-        staff_nurse_audio = await _safe_tts(response)
+    staff_nurse_audio = await _safe_tts(response, role="staff_nurse")
     
     return {
         "staff_nurse_response": response,
@@ -330,12 +328,17 @@ async def _handle_verification_as_action(
     
     # ⭐ FIX #1: Check if action already performed
     if is_action_already_performed(session, action_type):
+        staff_nurse_audio = await _safe_tts(
+            f"You've already verified the {material_type} with me. You can proceed to the next step.",
+            role="staff_nurse",
+        )
         return {
             "staff_nurse_response": f"You've already verified the {material_type} with me. You can proceed to the next step.",
             "current_step": session["current_step"],
             "is_verification": True,
             "action_recorded": False,
-            "already_performed": True
+            "already_performed": True,
+            "staff_nurse_audio": staff_nurse_audio,
         }
     
     # Get cached RAG guidelines
@@ -387,6 +390,7 @@ async def _handle_verification_as_action(
     print(f"Feedback Status: {real_time_feedback.get('status')}")
     print("="*60 + "\n")
     
+    staff_nurse_audio = await _safe_tts(nurse_response, role="staff_nurse")
     return {
         "staff_nurse_response": nurse_response,
         "current_step": session["current_step"],
@@ -394,6 +398,7 @@ async def _handle_verification_as_action(
         "action_recorded": True,
         "action_type": action_type,
         "timestamp": result.get("timestamp"),
+        "staff_nurse_audio": staff_nurse_audio,
         "feedback": {
             "message": real_time_feedback.get("message"),
             "status": real_time_feedback.get("status"),
@@ -747,6 +752,7 @@ async def run_step(payload: StepInput):
             "interpretation": evaluation.get("scores", {}).get("interpretation")
         },
         "feedback_audio": await _safe_tts(
-            (evaluation.get("narrated_feedback") or {}).get("message_text", "")
+            (evaluation.get("narrated_feedback") or {}).get("message_text", ""),
+            role="feedback",
         )
     }

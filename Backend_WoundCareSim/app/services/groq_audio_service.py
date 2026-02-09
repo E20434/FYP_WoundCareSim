@@ -1,5 +1,6 @@
 import base64
-from typing import Optional
+import re
+from typing import Optional, Dict
 
 import httpx
 
@@ -61,7 +62,7 @@ class GroqAudioService:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{GROQ_API_BASE_URL}/audio/speech",
-                headers=self._headers(),
+                headers={**self._headers(), "Accept": "audio/wav"},
                 json=payload,
             )
         response.raise_for_status()
@@ -70,3 +71,40 @@ class GroqAudioService:
             "audio_base64": audio_base64,
             "content_type": response.headers.get("content-type", "audio/mpeg"),
         }
+
+
+ROLE_VOICE_MAP: Dict[str, str] = {
+    "patient": "austin",
+    "staff_nurse": "autumn",
+    "feedback": "daniel",
+}
+
+_PATIENT_PREFIX_RE = re.compile(r"^\s*patient\s*:\s*", re.IGNORECASE)
+
+
+def _clean_tts_text(text: str, role: str) -> str:
+    cleaned = text.strip()
+    if role == "patient":
+        cleaned = _PATIENT_PREFIX_RE.sub("", cleaned).strip()
+    return cleaned
+
+
+async def synthesize_speech(
+    text: str,
+    role: str,
+    audio_service: Optional[GroqAudioService] = None,
+) -> Optional[dict]:
+    if not text:
+        return None
+    voice = ROLE_VOICE_MAP.get(role)
+    if not voice:
+        raise ValueError(f"Unknown TTS role: {role}")
+    service = audio_service or GroqAudioService()
+    cleaned_text = _clean_tts_text(text, role)
+    if not cleaned_text:
+        return None
+    return await service.text_to_speech(
+        text=cleaned_text,
+        model=GROQ_TTS_MODEL,
+        voice=voice,
+    )

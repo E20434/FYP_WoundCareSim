@@ -16,6 +16,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let isRecording = false;
 let mediaStream = null;
+let activeRecordingTarget = null;
 
 // ==========================================
 // Utility Functions
@@ -48,9 +49,9 @@ function handleEnter(event, callback) {
     }
 }
 
-function updateRecordingUI(recording) {
-    const recordButton = document.getElementById('recordButton');
-    const status = document.getElementById('recordingStatus');
+function updateRecordingUI(recording, buttonId, statusId, labelText) {
+    const recordButton = document.getElementById(buttonId);
+    const status = document.getElementById(statusId);
     if (!recordButton || !status) return;
     if (recording) {
         recordButton.classList.add('recording');
@@ -58,7 +59,7 @@ function updateRecordingUI(recording) {
         status.textContent = 'Recording...';
     } else {
         recordButton.classList.remove('recording');
-        recordButton.textContent = '🎤 Record Voice';
+        recordButton.textContent = labelText;
         status.textContent = 'Not recording';
     }
 }
@@ -203,19 +204,55 @@ async function sendMessageText(message) {
     }
 }
 
-async function toggleRecording() {
+async function togglePatientRecording() {
     if (isRecording) {
         stopRecording();
     } else {
-        await startRecording();
+        await startRecording({
+            buttonId: 'recordButton',
+            statusId: 'recordingStatus',
+            labelText: '🎤 Record Voice',
+            onStop: async (blob) => {
+                await sendAudioForTranscription(blob, async (transcript) => {
+                    const input = document.getElementById('patientQuestion');
+                    if (input) {
+                        input.value = transcript;
+                    }
+                    await sendMessageText(transcript);
+                });
+            }
+        });
     }
 }
 
-async function startRecording() {
+async function toggleNurseRecording() {
+    if (isRecording) {
+        stopRecording();
+    } else {
+        await startRecording({
+            buttonId: 'nurseRecordButton',
+            statusId: 'nurseRecordingStatus',
+            labelText: '🎤 Record Nurse Question',
+            onStop: async (blob) => {
+                await sendAudioForTranscription(blob, async (transcript) => {
+                    const inputId = getStaffNurseInputId();
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        input.value = transcript;
+                    }
+                    await askStaffNurse(transcript);
+                });
+            }
+        });
+    }
+}
+
+async function startRecording(target) {
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         recordedChunks = [];
         mediaRecorder = new MediaRecorder(mediaStream);
+        activeRecordingTarget = target;
         mediaRecorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
                 recordedChunks.push(event.data);
@@ -228,11 +265,15 @@ async function startRecording() {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
             }
-            await sendAudioForTranscription(blob);
+            const recordingTarget = activeRecordingTarget;
+            activeRecordingTarget = null;
+            if (recordingTarget && typeof recordingTarget.onStop === 'function') {
+                await recordingTarget.onStop(blob);
+            }
         };
         mediaRecorder.start();
         isRecording = true;
-        updateRecordingUI(true);
+        updateRecordingUI(true, target.buttonId, target.statusId, target.labelText);
     } catch (error) {
         console.error('Failed to start recording:', error);
         showError('Unable to access microphone. Please allow microphone access.');
@@ -243,11 +284,18 @@ function stopRecording() {
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        updateRecordingUI(false);
+        if (activeRecordingTarget) {
+            updateRecordingUI(
+                false,
+                activeRecordingTarget.buttonId,
+                activeRecordingTarget.statusId,
+                activeRecordingTarget.labelText
+            );
+        }
     }
 }
 
-async function sendAudioForTranscription(audioBlob) {
+async function sendAudioForTranscription(audioBlob, onTranscript) {
     showLoading();
     try {
         const formData = new FormData();
@@ -262,11 +310,12 @@ async function sendAudioForTranscription(audioBlob) {
         }
         const result = await response.json();
         const transcript = (result.text || '').trim();
-        const input = document.getElementById('patientQuestion');
-        if (input) {
-            input.value = transcript;
+        if (!transcript) {
+            return;
         }
-        await sendMessageText(transcript);
+        if (onTranscript) {
+            await onTranscript(transcript);
+        }
     } catch (error) {
         console.error('Failed to transcribe audio:', error);
         showError(error.message);
@@ -509,24 +558,34 @@ function displayRealtimeFeedback(feedback) {
 // Staff Nurse
 // ==========================================
 
-async function askStaffNurse() {
+function getStaffNurseInputId() {
     const step = currentSession.currentStep;
-    let inputId, responseId;
-    
-    // Determine input/response IDs based on step
     if (step === 'history') {
-        inputId = 'nurseQuestionHistory';
-        responseId = 'staffNurseHistory';
-    } else if (step === 'assessment') {
-        inputId = 'nurseQuestionAssessment';
-        responseId = 'staffNurseAssessment';
-    } else if (step === 'cleaning_and_dressing') {
-        inputId = 'nurseQuestionCleaningAndDressing';
-        responseId = 'staffNurseCleaningAndDressing';
+        return 'nurseQuestionHistory';
     }
+    if (step === 'assessment') {
+        return 'nurseQuestionAssessment';
+    }
+    return 'nurseQuestionCleaningAndDressing';
+}
+
+function getStaffNurseResponseId() {
+    const step = currentSession.currentStep;
+    if (step === 'history') {
+        return 'staffNurseHistory';
+    }
+    if (step === 'assessment') {
+        return 'staffNurseAssessment';
+    }
+    return 'staffNurseCleaningAndDressing';
+}
+
+async function askStaffNurse(messageOverride) {
+    const inputId = getStaffNurseInputId();
+    const responseId = getStaffNurseResponseId();
     
     const input = document.getElementById(inputId);
-    const message = input.value.trim();
+    const message = messageOverride ? messageOverride.trim() : input.value.trim();
     
     if (!message) return;
     

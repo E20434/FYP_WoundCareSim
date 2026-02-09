@@ -79,7 +79,7 @@
                     </div>
                     
                     <div class="voice-controls">
-                        <button class="btn btn-record" id="recordButton" onclick="toggleRecording()">
+                        <button class="btn btn-record" id="recordButton" onclick="togglePatientRecording()">
                             🎤 Record Voice
                         </button>
                         <span class="recording-status" id="recordingStatus">Not recording</span>
@@ -100,6 +100,12 @@
                     <h3>Staff Nurse Guidance</h3>
                     <div class="staff-nurse-response" id="staffNurseHistory">
                         <p class="text-muted">Ask the staff nurse for guidance anytime...</p>
+                    </div>
+                    <div class="voice-controls">
+                        <button class="btn btn-record" id="nurseRecordButton" onclick="toggleNurseRecording()">
+                            🎤 Record Nurse Question
+                        </button>
+                        <span class="recording-status" id="nurseRecordingStatus">Not recording</span>
                     </div>
                     <div class="input-group">
                         <input 
