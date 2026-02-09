@@ -80,25 +80,27 @@ class EvaluationService:
             action_events = session.get("action_events", [])
 
         # Step-specific RAG queries for accurate guideline retrieval
+        # Note: ASSESSMENT step uses MCQ-only evaluation (no RAG needed)
         rag_query_map = {
             Step.HISTORY.value: "patient history taking guidelines nursing communication assessment questions",
-            Step.ASSESSMENT.value: "wound assessment guidelines evaluation criteria",
             Step.CLEANING_AND_DRESSING.value: "wound cleaning and dressing preparation procedure protocol hand hygiene aseptic technique",
         }
         
-        rag_query = rag_query_map.get(step, "clinical nursing evaluation guidelines")
-
-        rag = await retrieve_with_rag(
-            query=rag_query,
-            scenario_id=session["scenario_id"]
-        )
+        rag_context = ""
+        if step in rag_query_map:
+            rag_query = rag_query_map.get(step)
+            rag = await retrieve_with_rag(
+                query=rag_query,
+                scenario_id=session["scenario_id"]
+            )
+            rag_context = rag.get("text", "")
 
         return {
             "step": step,
             "scenario_metadata": scenario_metadata,
             "transcript": transcript,
             "action_events": action_events,
-            "rag_context": rag.get("text", "")
+            "rag_context": rag_context
         }
 
     # ------------------------------------------------

@@ -35,62 +35,73 @@ class CommunicationAgent(BaseAgent):
                 ],
                 explanation="The student did not engage in any conversation with the patient. Gathering patient history through effective communication is a critical first step in wound care. Without patient interaction, essential information about allergies, pain levels, and medical history cannot be obtained.",
                 verdict="Inappropriate",
-                confidence=1.0
+                confidence=0.0
             )
         
         system_prompt = (
             "You are a nursing communication evaluator for history-taking.\n\n"
-            "ROLE: Evaluate ONLY communication skills, NOT clinical knowledge or physical actions.\n\n"
-            "FOCUS ON:\n"
-            "1. Introduction & Rapport\n"
-            "   - Did student introduce themselves?\n"
-            "   - Was the tone respectful and professional?\n"
-            "   - Did student establish a welcoming environment?\n\n"
-            "2. Clarity & Understanding\n"
-            "   - Did student speak clearly?\n"
-            "   - Did student use simple, non-technical language?\n"
-            "   - Did student check patient understanding?\n\n"
-            "3. Active Listening\n"
-            "   - Did student acknowledge patient responses?\n"
-            "   - Did student show empathy and patience?\n"
-            "   - Did student follow up appropriately?\n\n"
-            "4. Patient-Centered Communication\n"
-            "   - Did student explain the procedure?\n"
-            "   - Did student check patient comfort?\n"
-            "   - Did student give patient opportunity to ask questions?\n\n"
+            "ROLE: Evaluate ONLY communication skills during patient interaction.\n"
+            "Do NOT evaluate medical knowledge, whether specific questions were asked, or clinical accuracy.\n\n"
+            "EVALUATION CRITERIA:\n\n"
+            "1. PROFESSIONAL INTRODUCTION\n"
+            "   Check: Student introduced self AND established respect for patient\n\n"
+            "2. CLARITY & TONE\n"
+            "   Check: Student used clear language, avoided jargon, spoke respectfully\n\n"
+            "3. ACTIVE LISTENING & EMPATHY\n"
+            "   Check: Student acknowledged patient responses, showed understanding, validated concerns\n\n"
+            "4. PATIENT-CENTERED APPROACH\n"
+            "   Check: Student addressed patient comfort, explained actions, invited questions\n\n"
             "EVALUATION RULES:\n"
-            "- Base evaluation ONLY on the actual conversation transcript provided\n"
-            "- Do NOT evaluate what questions were asked (that's knowledge evaluation)\n"
-            "- Do NOT evaluate clinical accuracy (that's clinical evaluation)\n"
-            "- Do NOT assume or invent student actions\n"
-            "- Provide specific examples from the conversation\n\n"
-            "OUTPUT FORMAT (RAW JSON ONLY):\n"
+            "- Base judgment ONLY on actual conversation transcript\n"
+            "- Do NOT evaluate whether specific medical questions were asked (KnowledgeAgent does that)\n"
+            "- Do NOT assume unspoken actions or thoughts\n"
+            "- Rate communication quality independently of clinical content\n\n"
+            "VERDICT ASSIGNMENT (STRICT):\n\n"
+            "APPROPRIATE:\n"
+            "  - Student introduces self professionally\n"
+            "  - All responses are clear, respectful, and patient-centered\n"
+            "  - Student demonstrates empathy and active listening\n"
+            "  - Maintains professional tone throughout\n\n"
+            "PARTIALLY APPROPRIATE:\n"
+            "  - Student attempts introduction but tone/clarity needs work, OR\n"
+            "  - Most responses are clear/respectful but some gaps in empathy/engagement, OR\n"
+            "  - Some unprofessional moments but overall communication is functional\n\n"
+            "INAPPROPRIATE:\n"
+            "  - No real conversation with patient (zero or minimal student input), OR\n"
+            "  - Consistently unprofessional tone/disrespectful language, OR\n"
+            "  - Failed to establish any basic rapport, OR\n"
+            "  - Student did not engage meaningfully with patient responses\n\n"
+            "CONFIDENCE GUIDELINES:\n"
+            "  Confidence = How clear the evidence is from the transcript\n\n"
+            "  1.0 (certain): All communication elements clearly present/absent in conversation\n"
+            "  0.8: Most elements clear, minor ambiguity in a few moments\n"
+            "  0.6: Some elements clear, significant portions hard to assess from transcript\n"
+            "  0.4: Limited conversation makes assessment difficult\n"
+            "  0.0: No conversation or completely unable to assess\n\n"
+            "OUTPUT FORMAT (RAW JSON ONLY, no markdown):\n"
+            "Return ONLY valid JSON with these exact fields:\n"
             "{\n"
             '  "agent_name": "CommunicationAgent",\n'
             '  "step": "history",\n'
-            '  "strengths": ["Specific communication strengths with examples..."],\n'
-            '  "issues_detected": ["Specific communication issues with examples..."],\n'
-            '  "explanation": "Overall assessment of communication effectiveness...",\n'
-            '  "verdict": "Appropriate" | "Partially Appropriate" | "Inappropriate",\n'
-            '  "confidence": 0.8\n'
-            "}\n\n"
-            "VERDICT GUIDELINES:\n"
-            "- Appropriate: Professional, clear, patient-centered communication throughout\n"
-            "- Partially Appropriate: Some communication elements present but gaps in rapport/clarity/patient-centeredness\n"
-            "- Inappropriate: Minimal communication, unprofessional tone, or failed to establish basic rapport\n"
+            '  "strengths": ["Clear example from transcript", "Another strength with evidence"],\n'
+            '  "issues_detected": ["Specific issue observed"],\n'
+            '  "explanation": "Evidence-based reasoning tying verdict to transcript moments",\n'
+            '  "verdict": "Appropriate",\n'
+            '  "confidence": 0.85\n'
+            "}\n"
         )
 
         user_prompt = (
-            f"CONVERSATION TRANSCRIPT:\n"
-            f"{student_input}\n\n"
+            f"STUDENT-PATIENT CONVERSATION (Speaker labels are explicit):\n"
+            f"═" * 70 + "\n"
+            f"{student_input}\n"
+            f"═" * 70 + "\n\n"
             f"SCENARIO CONTEXT:\n"
             f"Patient: {scenario_metadata.get('patient_history', {}).get('name', 'Unknown')}, "
-            f"{scenario_metadata.get('patient_history', {}).get('age', 'Unknown')} years old\n"
-            f"Wound: {scenario_metadata.get('wound_details', {}).get('wound_type', 'Unknown')} on "
-            f"{scenario_metadata.get('wound_details', {}).get('location', 'Unknown')}\n\n"
-            f"REFERENCE GUIDELINES:\n"
-            f"{rag_response}\n\n"
-            "Evaluate the communication quality based on the actual conversation."
+            f"Age {scenario_metadata.get('patient_history', {}).get('age', 'Unknown')}\n"
+            f"Presenting Issue: {scenario_metadata.get('wound_details', {}).get('wound_type', 'Unknown')} "
+            f"at {scenario_metadata.get('wound_details', {}).get('location', 'Unknown')}\n\n"
+            f"Evaluate how professionally and empathetically the student communicated with the patient."
         )
 
         raw_response = await self.run(
@@ -106,6 +117,40 @@ class CommunicationAgent(BaseAgent):
             # Enforce consistency
             response_data["step"] = current_step
             response_data["agent_name"] = "CommunicationAgent"
+            
+            # ================================================================
+            # VERDICT VALIDATION AND NORMALIZATION
+            # ================================================================
+            # Ensure verdict is one of the three allowed values
+            verdict = response_data.get("verdict", "").strip()
+            valid_verdicts = ["Appropriate", "Partially Appropriate", "Inappropriate"]
+            
+            if verdict not in valid_verdicts:
+                # Try to match if typo or slight variation
+                verdict_lower = verdict.lower()
+                if "appropriate" in verdict_lower and "partial" in verdict_lower:
+                    response_data["verdict"] = "Partially Appropriate"
+                elif "inappropriate" in verdict_lower or "no" in verdict_lower or "failed" in verdict_lower:
+                    response_data["verdict"] = "Inappropriate"
+                elif "appropriate" in verdict_lower:
+                    response_data["verdict"] = "Appropriate"
+                else:
+                    # Default to Inappropriate if unrecognized
+                    print(f"⚠️ CommunicationAgent returned invalid verdict: {verdict}")
+                    response_data["verdict"] = "Inappropriate"
+            
+            # ================================================================
+            # CONFIDENCE VALIDATION
+            # ================================================================
+            # Ensure confidence is between 0.0 and 1.0
+            confidence = response_data.get("confidence", 0.0)
+            try:
+                confidence = float(confidence)
+                confidence = max(0.0, min(1.0, confidence))  # Clamp to [0.0, 1.0]
+                response_data["confidence"] = round(confidence, 2)
+            except (ValueError, TypeError):
+                print(f"⚠️ CommunicationAgent returned invalid confidence: {confidence}")
+                response_data["confidence"] = 0.0
 
             return EvaluatorResponse(**response_data)
 
