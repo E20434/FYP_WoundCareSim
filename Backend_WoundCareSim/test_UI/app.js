@@ -243,9 +243,14 @@ async function toggleNurseRecording() {
     if (isRecording) {
         stopRecording();
     } else {
+        const recordingIds = getStaffNurseRecordingIds();
+        if (!recordingIds) {
+            showError('Voice recording is not available for this step.');
+            return;
+        }
         await startRecording({
-            buttonId: 'nurseRecordButton',
-            statusId: 'nurseRecordingStatus',
+            buttonId: recordingIds.buttonId,
+            statusId: recordingIds.statusId,
             labelText: '🎤 Record Nurse Question',
             onStop: async (blob) => {
                 await sendAudioForTranscription(blob, async (transcript) => {
@@ -511,7 +516,7 @@ async function recordAction(actionType) {
                 status: 'duplicate',
                 can_proceed: true,
                 missing_actions: []
-            });
+            }, response.feedback_audio);
             return; // Don't increment counter or update UI
         }
         
@@ -522,7 +527,7 @@ async function recordAction(actionType) {
         }
         
         // Display real-time feedback
-        displayRealtimeFeedback(response.feedback);
+        displayRealtimeFeedback(response.feedback, response.feedback_audio);
         
     } catch (error) {
         console.error('Failed to record action:', error);
@@ -532,7 +537,7 @@ async function recordAction(actionType) {
 // Verification is now handled automatically in askStaffNurse()
 // No separate functions needed
 
-function displayRealtimeFeedback(feedback) {
+function displayRealtimeFeedback(feedback, feedbackAudio) {
     const feedbackBox = document.getElementById('realtimeFeedback');
     
     // ⭐ NEW: Handle duplicate action status
@@ -573,6 +578,10 @@ function displayRealtimeFeedback(feedback) {
     
     html += '</div>';
     feedbackBox.innerHTML = html;
+
+    if (feedbackAudio && feedbackAudio.audio_base64) {
+        playAudioFromBase64(feedbackAudio.audio_base64, feedbackAudio.content_type);
+    }
 }
 
 // ==========================================
@@ -599,6 +608,17 @@ function getStaffNurseResponseId() {
         return 'staffNurseAssessment';
     }
     return 'staffNurseCleaningAndDressing';
+}
+
+function getStaffNurseRecordingIds() {
+    const step = currentSession.currentStep;
+    if (step === 'history') {
+        return { buttonId: 'nurseRecordButton', statusId: 'nurseRecordingStatus' };
+    }
+    if (step === 'cleaning_and_dressing') {
+        return { buttonId: 'nurseRecordButtonCleaning', statusId: 'nurseRecordingStatusCleaning' };
+    }
+    return null;
 }
 
 async function askStaffNurse(messageOverride) {
@@ -634,7 +654,7 @@ async function askStaffNurse(messageOverride) {
             
             // Display real-time feedback
             if (response.feedback) {
-                displayRealtimeFeedback(response.feedback);
+                displayRealtimeFeedback(response.feedback, response.feedback_audio);
             }
         } else if (response.is_verification && response.already_performed) {
             // Verification already done

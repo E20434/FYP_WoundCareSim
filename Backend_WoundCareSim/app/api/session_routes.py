@@ -391,6 +391,10 @@ async def _handle_verification_as_action(
     print("="*60 + "\n")
     
     staff_nurse_audio = await _safe_tts(nurse_response, role="staff_nurse")
+    feedback_audio = await _safe_tts(
+        real_time_feedback.get("message", ""),
+        role="realtime_feedback",
+    )
     return {
         "staff_nurse_response": nurse_response,
         "current_step": session["current_step"],
@@ -399,6 +403,7 @@ async def _handle_verification_as_action(
         "action_type": action_type,
         "timestamp": result.get("timestamp"),
         "staff_nurse_audio": staff_nurse_audio,
+        "feedback_audio": feedback_audio,
         "feedback": {
             "message": real_time_feedback.get("message"),
             "status": real_time_feedback.get("status"),
@@ -445,12 +450,17 @@ async def record_action(payload: ActionInput):
         print("="*60)
         print(f"Status: Already performed")
         print("="*60 + "\n")
-        
+
+        feedback_audio = await _safe_tts(
+            f"You have already completed {action_name}. Please proceed to the next action.",
+            role="realtime_feedback",
+        )
         return {
             "action_recorded": False,
             "action_type": payload.action_type,
             "step": current_step,
             "already_performed": True,
+            "feedback_audio": feedback_audio,
             "feedback": {
                 "message": f"You have already completed {action_name}. Please proceed to the next action.",
                 "status": "duplicate",
@@ -501,7 +511,11 @@ async def record_action(payload: ActionInput):
     print(f"Can Proceed: {real_time_feedback.get('can_proceed')}")
     print(f"Total Actions: {real_time_feedback.get('total_actions_so_far')}")
     print("="*60 + "\n")
-    
+
+    feedback_audio = await _safe_tts(
+        real_time_feedback.get("message", ""),
+        role="realtime_feedback",
+    )
     # Return simplified feedback to student
     return {
         "action_recorded": True,
@@ -509,6 +523,7 @@ async def record_action(payload: ActionInput):
         "step": current_step,
         "timestamp": result.get("timestamp"),
         "already_performed": False,
+        "feedback_audio": feedback_audio,
         "feedback": {
             "message": real_time_feedback.get("message"),
             "status": real_time_feedback.get("status"),
