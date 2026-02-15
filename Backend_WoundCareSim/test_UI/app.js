@@ -65,10 +65,16 @@ function updateRecordingUI(recording, buttonId, statusId, labelText) {
 }
 
 function playAudioFromBase64(audioBase64, contentType = 'audio/mpeg') {
-    if (!audioBase64) return;
+    if (!audioBase64) return Promise.resolve();
     const audio = new Audio(`data:${contentType};base64,${audioBase64}`);
-    audio.play().catch(error => {
-        console.error('Audio playback failed:', error);
+    return new Promise(resolve => {
+        audio.onended = resolve;
+        audio.onerror = resolve;
+
+        audio.play().catch(error => {
+            console.error('Audio playback failed:', error);
+            resolve();
+        });
     });
 }
 
@@ -654,7 +660,7 @@ async function askStaffNurse(messageOverride) {
             
             // Display real-time feedback
             if (response.feedback) {
-                displayRealtimeFeedback(response.feedback, response.feedback_audio);
+                displayRealtimeFeedback(response.feedback, null);
             }
         } else if (response.is_verification && response.already_performed) {
             // Verification already done
@@ -672,7 +678,21 @@ async function askStaffNurse(messageOverride) {
             `;
         }
 
-        if (response.staff_nurse_audio && response.staff_nurse_audio.audio_base64) {
+        if (response.is_verification && response.action_recorded) {
+            if (response.staff_nurse_audio && response.staff_nurse_audio.audio_base64) {
+                await playAudioFromBase64(
+                    response.staff_nurse_audio.audio_base64,
+                    response.staff_nurse_audio.content_type
+                );
+            }
+
+            if (response.feedback_audio && response.feedback_audio.audio_base64) {
+                await playAudioFromBase64(
+                    response.feedback_audio.audio_base64,
+                    response.feedback_audio.content_type
+                );
+            }
+        } else if (response.staff_nurse_audio && response.staff_nurse_audio.audio_base64) {
             playAudioFromBase64(
                 response.staff_nurse_audio.audio_base64,
                 response.staff_nurse_audio.content_type
@@ -708,8 +728,8 @@ async function finishStep(step) {
             // Assessment: Show MCQ results only (no narration)
             displayAssessmentResults(response.mcq_result, response.summary_audio);
         } else if (step === 'cleaning_and_dressing') {
-            // Cleaning & Dressing: Show summary only (no scores/narration)
-            displayPreparationSummary(response.summary);
+            // Cleaning & Dressing: Silently move to next step with no summary/modal/audio
+            continueToNextStep();
         }
         
     } catch (error) {
