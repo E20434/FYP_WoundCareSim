@@ -48,9 +48,6 @@ Handles the production-style simulation workflow:
 - Agent coordination and state transitions.
 - Evaluation, scoring, and event tracking.
 
-### Prototype app (`kushan`)
-A lightweight UI-driven variant used for earlier experimentation and rapid testing.
-
 ---
 
 ## 5) Learning flow in the simulator
@@ -62,5 +59,3 @@ A typical session follows:
 3. **Guided progression** to next clinical step.
 4. **Material verification/actions** during cleaning & dressing.
 5. **Evaluation output** with feedback narrative.
-
----
