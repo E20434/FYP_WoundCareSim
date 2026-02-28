@@ -209,6 +209,7 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                                 "action_recorded": response.get("action_recorded", False),
                                 "action_type": response.get("action_type"),
                                 "already_performed": response.get("already_performed", False),
+                                "total_actions_so_far": feedback_payload.get("total_actions_so_far"),
                             }
                         )
                         await _send_server_event(websocket, "real_time_feedback", feedback_payload)
@@ -248,10 +249,21 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                     {"text": response.get("staff_nurse_response", "")},
                 )
                 await _send_tts_event(websocket, response.get("staff_nurse_audio"), "nurse")
+                feedback_payload = response.get("feedback") or {}
+                if not feedback_payload.get("message"):
+                    feedback_payload["message"] = response.get("staff_nurse_response", "")
+                feedback_payload.update(
+                    {
+                        "is_verification": True,
+                        "action_recorded": response.get("action_recorded", False),
+                        "action_type": response.get("action_type"),
+                        "already_performed": response.get("already_performed", False),
+                    }
+                )
                 await _send_server_event(
                     websocket,
                     "real_time_feedback",
-                    response.get("feedback") or {},
+                    feedback_payload,
                 )
                 await _send_tts_event(websocket, response.get("feedback_audio"), "feedback")
 
@@ -270,6 +282,8 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                         "status": "duplicate",
                         "missing_actions": [],
                         "message": "This action was already completed.",
+                        "action_recorded": False,
+                        "total_actions_so_far": len(session.get("action_events", [])),
                     }
                 else:
                     performed_actions = session.get("action_events", [])
@@ -289,6 +303,9 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                         "status": rt_feedback.get("status", "complete"),
                         "missing_actions": rt_feedback.get("missing_actions", []),
                         "message": rt_feedback.get("message", "Action processed."),
+                        "action_recorded": True,
+                        "action_type": action_type,
+                        "total_actions_so_far": rt_feedback.get("total_actions_so_far"),
                     }
 
                 await _send_server_event(websocket, "real_time_feedback", feedback)
@@ -439,23 +456,7 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                     session["mcq_answers"] = {}
 
                 elif current_step == Step.CLEANING_AND_DRESSING.value:
-                    # Generate LLM summary before clearing action data
-                    action_events = session.get("action_events", [])
-                    rag_guidelines = session.get("cached_rag_guidelines", "")
-                    summary_text = await clinical_agent.generate_step_summary(
-                        action_events=action_events,
-                        rag_guidelines=rag_guidelines,
-                    )
-                    await _send_server_event(
-                        websocket,
-                        "cleaning_summary",
-                        {"summary": summary_text},
-                    )
-                    await _send_tts_event(
-                        websocket,
-                        await _safe_tts(summary_text, role="feedback"),
-                        "feedback",
-                    )
+                    # No final feedback for cleaning_and_dressing; clear step data only.
                     session["action_events"] = []
                     session.pop("cached_rag_guidelines", None)
                     session.pop("cached_prerequisite_map", None)

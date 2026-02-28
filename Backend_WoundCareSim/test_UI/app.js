@@ -291,10 +291,6 @@ function handleServerEvent(message) {
             );
             markFeedbackRendered();
             break;
-        case 'cleaning_summary':
-            displayCleaningSummary((message.data || {}).summary || '');
-            markFeedbackRendered();
-            break;
         case 'step_complete': {
             const nextStep = (message.data || {}).next_step;
             if (!currentSession.awaitingStepCompletion) {
@@ -304,8 +300,7 @@ function handleServerEvent(message) {
 
             const pendingStep = currentSession.currentStep;
             const requiresFeedback = pendingStep === 'history'
-                || pendingStep === 'assessment'
-                || pendingStep === 'cleaning_and_dressing';
+                || pendingStep === 'assessment';
             if (requiresFeedback && !currentSession.feedbackRenderedForPendingStep) {
                 currentSession.deferredNextStep = nextStep;
                 break;
@@ -831,6 +826,14 @@ function displayRealtimeFeedback(feedback, feedbackAudio) {
     
     html += '</div>';
     feedbackBox.innerHTML = html;
+
+    if (typeof feedback.total_actions_so_far === 'number') {
+        currentSession.actionCounter = feedback.total_actions_so_far;
+        document.getElementById('actionCounter').textContent = String(currentSession.actionCounter);
+    } else if (feedback.action_recorded === true) {
+        currentSession.actionCounter += 1;
+        document.getElementById('actionCounter').textContent = String(currentSession.actionCounter);
+    }
 
     if (feedbackAudio && feedbackAudio.audio_base64) {
         playAudioFromBase64(feedbackAudio.audio_base64, feedbackAudio.content_type);
