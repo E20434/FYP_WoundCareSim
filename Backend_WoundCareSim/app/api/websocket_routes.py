@@ -20,7 +20,7 @@ from app.api.session_routes import (
 )
 from app.agents.staff_nurse_agent import StaffNurseAgent
 from app.core.state_machine import Step
-from app.rag.retriever import extract_prerequisite_map, retrieve_with_rag
+from app.rag.retriever import retrieve_with_rag
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -273,11 +273,11 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                     }
                 else:
                     performed_actions = session.get("action_events", [])
-                    prerequisite_map = session.get("cached_prerequisite_map", {})
+                    rag_guidelines = session.get("cached_rag_guidelines", "")
                     rt_feedback = await clinical_agent.get_real_time_feedback(
                         action_type=action_type,
                         performed_actions=performed_actions,
-                        prerequisite_map=prerequisite_map,
+                        rag_guidelines=rag_guidelines,
                     )
                     action_event_service.record_action(
                         session_id=session_id,
@@ -439,6 +439,23 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                     session["mcq_answers"] = {}
 
                 elif current_step == Step.CLEANING_AND_DRESSING.value:
+                    # Generate LLM summary before clearing action data
+                    action_events = session.get("action_events", [])
+                    rag_guidelines = session.get("cached_rag_guidelines", "")
+                    summary_text = await clinical_agent.generate_step_summary(
+                        action_events=action_events,
+                        rag_guidelines=rag_guidelines,
+                    )
+                    await _send_server_event(
+                        websocket,
+                        "cleaning_summary",
+                        {"summary": summary_text},
+                    )
+                    await _send_tts_event(
+                        websocket,
+                        await _safe_tts(summary_text, role="feedback"),
+                        "feedback",
+                    )
                     session["action_events"] = []
                     session.pop("cached_rag_guidelines", None)
                     session.pop("cached_prerequisite_map", None)
@@ -452,10 +469,6 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                     )
                     rag_text = rag_result.get("text", "")
                     session["cached_rag_guidelines"] = rag_text
-                    session["cached_prerequisite_map"] = await extract_prerequisite_map(
-                        rag_text=rag_text,
-                        base_agent=clinical_agent,
-                    )
 
                 await _send_server_event(websocket, "step_complete", {"next_step": next_step})
                 if next_step == Step.COMPLETED.value:
@@ -481,10 +494,6 @@ async def websocket_endpoint(session_id: str, websocket: WebSocket):
                     )
                     rag_text = rag_result.get("text", "")
                     session["cached_rag_guidelines"] = rag_text
-                    session["cached_prerequisite_map"] = await extract_prerequisite_map(
-                        rag_text=rag_text,
-                        base_agent=clinical_agent,
-                    )
 
                 await _send_server_event(websocket, "step_complete", {"next_step": next_step})
                 if next_step == Step.COMPLETED.value:

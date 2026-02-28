@@ -291,6 +291,10 @@ function handleServerEvent(message) {
             );
             markFeedbackRendered();
             break;
+        case 'cleaning_summary':
+            displayCleaningSummary((message.data || {}).summary || '');
+            markFeedbackRendered();
+            break;
         case 'step_complete': {
             const nextStep = (message.data || {}).next_step;
             if (!currentSession.awaitingStepCompletion) {
@@ -299,7 +303,9 @@ function handleServerEvent(message) {
             }
 
             const pendingStep = currentSession.currentStep;
-            const requiresFeedback = pendingStep === 'history' || pendingStep === 'assessment';
+            const requiresFeedback = pendingStep === 'history'
+                || pendingStep === 'assessment'
+                || pendingStep === 'cleaning_and_dressing';
             if (requiresFeedback && !currentSession.feedbackRenderedForPendingStep) {
                 currentSession.deferredNextStep = nextStep;
                 break;
@@ -862,6 +868,9 @@ function getStaffNurseRecordingIds() {
     if (step === 'history') {
         return { buttonId: 'nurseRecordButton', statusId: 'nurseRecordingStatus' };
     }
+    if (step === 'assessment') {
+        return { buttonId: 'nurseRecordButtonAssessment', statusId: 'nurseRecordingStatusAssessment' };
+    }
     if (step === 'cleaning_and_dressing') {
         return { buttonId: 'nurseRecordButtonCleaning', statusId: 'nurseRecordingStatusCleaning' };
     }
@@ -895,6 +904,11 @@ async function askStaffNurse(messageOverride) {
 // ==========================================
 
 async function finishStep(step) {
+    if (step === 'history' || step === 'assessment') {
+        await completeStepViaRest(step);
+        return;
+    }
+
     // Mark that we are waiting for step completion so handleServerEvent
     // can coordinate feedback and navigation correctly.
     currentSession.awaitingStepCompletion = true;
@@ -906,6 +920,41 @@ async function finishStep(step) {
         // Reset flags if WS is down so the UI is not stuck
         currentSession.awaitingStepCompletion = false;
         showError('WebSocket is disconnected. Please reconnect and try again.');
+    }
+}
+
+async function completeStepViaRest(step) {
+    try {
+        const result = await apiCall('/session/complete-step', 'POST', {
+            session_id: currentSession.sessionId,
+            step
+        });
+
+        currentSession.awaitingStepCompletion = false;
+        currentSession.feedbackRenderedForPendingStep = false;
+        currentSession.deferredNextStep = null;
+        currentSession.nextStep = result.next_step;
+
+        if (step === 'history') {
+            displayHistoryFeedback(result.feedback || {}, result.feedback_audio || null);
+            return;
+        }
+
+        if (step === 'assessment') {
+            const feedback = result.feedback || {};
+            displayAssessmentResults(
+                feedback.mcq_result,
+                result.feedback_audio || null,
+                feedback.summary_text || null
+            );
+            return;
+        }
+
+        if (result.next_step) {
+            continueToNextStep();
+        }
+    } catch (error) {
+        console.error('Failed to complete step via REST:', error);
     }
 }
 
@@ -1011,6 +1060,23 @@ function displayPreparationSummary(summary) {
         </div>
     `;
     
+    content.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function displayCleaningSummary(summaryText) {
+    const modal = document.getElementById('feedbackModal');
+    const content = document.getElementById('feedbackContent');
+
+    const html = `
+        <div class="feedback-section">
+            <h3>🧹 Preparation Step Summary</h3>
+            <div class="narrated-feedback">
+                <p>${summaryText}</p>
+            </div>
+        </div>
+    `;
+
     content.innerHTML = html;
     modal.style.display = 'flex';
 }

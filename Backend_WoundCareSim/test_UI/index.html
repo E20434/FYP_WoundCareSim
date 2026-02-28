@@ -38,27 +38,27 @@
             <div class="card">
                 <h2>Start New Session</h2>
                 <p>Enter your details to begin the nursing procedure simulation.</p>
-                
+
                 <div class="form-group">
                     <label for="scenarioId">Scenario ID:</label>
                     <input type="text" id="scenarioId" value="scenario_001" placeholder="Enter scenario ID">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="studentId">Student ID:</label>
                     <input type="text" id="studentId" value="student_123" placeholder="Enter your student ID">
                 </div>
-                
+
                 <button class="btn btn-primary btn-large" onclick="startSession()">
                     Start Session
                 </button>
-                
+
                 <div class="info-box">
                     <strong>Training Steps:</strong>
                     <ol>
-                        <li><strong>History Taking</strong> - Communicate with patient to gather medical history</li>
-                        <li><strong>Assessment</strong> - Answer MCQs about wound assessment</li>
-                        <li><strong>Cleaning & Dressing Preparation</strong> - Prepare materials (9 required actions with real-time feedback)</li>
+                        <li><strong>History Taking</strong> - Communicate with the patient to gather their medical history</li>
+                        <li><strong>Wound Assessment</strong> - Answer assessment questions about the wound</li>
+                        <li><strong>Cleaning &amp; Dressing Preparation</strong> - Prepare all required materials and equipment</li>
                     </ol>
                 </div>
             </div>
@@ -68,14 +68,14 @@
         <div class="screen" id="historyScreen" style="display: none;">
             <div class="step-header">
                 <h2>Step 1: Patient History</h2>
-                <p>Ask the patient questions to gather their medical history.</p>
+                <p>Talk to the patient and gather the information you need before proceeding.</p>
                 <div class="step-reminder">
-                    <strong>⚠️ Important:</strong> If you proceed without any conversation, you will receive zero marks for this step.
+                    <strong>&#9888;&#65039; Important:</strong> Proceed without any conversation and you will receive zero marks for this step.
                 </div>
             </div>
 
             <div class="main-content">
-                <!-- Conversation Area -->
+                <!-- Patient Conversation -->
                 <div class="card">
                     <h3>Patient Conversation</h3>
                     <div class="conversation-box" id="conversationBox">
@@ -83,7 +83,7 @@
                             Start by asking the patient a question...
                         </div>
                     </div>
-                    
+
                     <div class="voice-controls">
                         <button class="btn btn-record" id="recordButton" onclick="togglePatientRecording()">
                             🎤 Record Voice
@@ -92,9 +92,9 @@
                     </div>
 
                     <div class="input-group">
-                        <input 
-                            type="text" 
-                            id="patientQuestion" 
+                        <input
+                            type="text"
+                            id="patientQuestion"
                             placeholder="Type your question to the patient..."
                             onkeypress="handleEnter(event, sendPatientMessage)"
                         >
@@ -106,21 +106,21 @@
 
                 <!-- Staff Nurse -->
                 <div class="card">
-                    <h3>Staff Nurse Guidance</h3>
+                    <h3>Staff Nurse</h3>
                     <div class="staff-nurse-response" id="staffNurseHistory">
                         <p class="text-muted">Ask the staff nurse for guidance anytime...</p>
                     </div>
                     <div class="voice-controls">
                         <button class="btn btn-record" id="nurseRecordButton" onclick="toggleNurseRecording()">
-                            🎤 Record Nurse Question
+                            🎤 Record Question
                         </button>
                         <span class="recording-status" id="nurseRecordingStatus">Not recording</span>
                     </div>
                     <div class="input-group">
-                        <input 
-                            type="text" 
-                            id="nurseQuestionHistory" 
-                            placeholder="Ask staff nurse..."
+                        <input
+                            type="text"
+                            id="nurseQuestionHistory"
+                            placeholder="Ask the staff nurse..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
                         <button class="btn btn-secondary" onclick="askStaffNurse()">
@@ -132,7 +132,7 @@
 
             <div class="action-bar">
                 <button class="btn btn-success btn-large" onclick="finishStep('history')">
-                    Finish History Step →
+                    Finish History Step &#8594;
                 </button>
             </div>
         </div>
@@ -141,9 +141,9 @@
         <div class="screen" id="assessmentScreen" style="display: none;">
             <div class="step-header">
                 <h2>Step 2: Wound Assessment</h2>
-                <p>Answer the multiple-choice questions to assess the wound.</p>
+                <p>Answer the assessment questions about the wound.</p>
                 <div class="step-reminder">
-                    <strong>⚠️ Important:</strong> If you proceed without answering questions, you will receive zero marks for this step.
+                    <strong>&#9888;&#65039; Important:</strong> Proceed without answering any questions and you will receive zero marks for this step.
                 </div>
             </div>
 
@@ -152,21 +152,27 @@
                 <div class="card">
                     <h3>Assessment Questions</h3>
                     <div id="mcqContainer">
-                        <!-- MCQ questions will be loaded here -->
+                        <!-- MCQ questions loaded dynamically -->
                     </div>
                 </div>
 
                 <!-- Staff Nurse -->
                 <div class="card">
-                    <h3>Staff Nurse Guidance</h3>
+                    <h3>Staff Nurse</h3>
                     <div class="staff-nurse-response" id="staffNurseAssessment">
                         <p class="text-muted">Ask the staff nurse for guidance anytime...</p>
                     </div>
+                    <div class="voice-controls">
+                        <button class="btn btn-record" id="nurseRecordButtonAssessment" onclick="toggleNurseRecording()">
+                            🎤 Record Question
+                        </button>
+                        <span class="recording-status" id="nurseRecordingStatusAssessment">Not recording</span>
+                    </div>
                     <div class="input-group">
-                        <input 
-                            type="text" 
-                            id="nurseQuestionAssessment" 
-                            placeholder="Ask staff nurse..."
+                        <input
+                            type="text"
+                            id="nurseQuestionAssessment"
+                            placeholder="Ask the staff nurse..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
                         <button class="btn btn-secondary" onclick="askStaffNurse()">
@@ -178,18 +184,18 @@
 
             <div class="action-bar">
                 <button class="btn btn-success btn-large" onclick="finishStep('assessment')">
-                    Finish Assessment Step →
+                    Finish Assessment Step &#8594;
                 </button>
             </div>
         </div>
 
-        <!-- CLEANING AND DRESSING Step (Combined - 9 Actions) -->
+        <!-- CLEANING AND DRESSING Step -->
         <div class="screen" id="cleaningAndDressingScreen" style="display: none;">
             <div class="step-header">
-                <h2>Step 3: Cleaning & Dressing Preparation</h2>
-                <p>Prepare all equipment, solutions, and materials for wound care. Complete 9 required actions in sequence.</p>
+                <h2>Step 3: Cleaning &amp; Dressing Preparation</h2>
+                <p>Prepare for the wound cleaning and dressing. Perform all required preparation actions.</p>
                 <div class="step-reminder">
-                    <strong>ℹ️ Note:</strong> You'll receive real-time feedback after each action. No final score/feedback - real-time guidance is sufficient.
+                    <strong>&#9432; Note:</strong> You will receive feedback after each action. A summary will be provided when you finish the step.
                 </div>
             </div>
 
@@ -197,79 +203,45 @@
                 <!-- Actions Area -->
                 <div class="card">
                     <h3>Preparation Actions</h3>
-                    
+
                     <div class="actions-counter">
-                        <strong>Actions Completed:</strong> <span id="actionCounter">0</span> / 9
+                        <strong>Actions Completed:</strong> <span id="actionCounter">0</span>
                     </div>
-                    
-                    <div class="info-box">
-                        <strong>Required Actions (in sequence):</strong>
-                        <ol>
-                            <li>Initial Hand Hygiene</li>
-                            <li>Clean the Dressing Trolley</li>
-                            <li>Hand Hygiene After Trolley Cleaning</li>
-                            <li>Select Prescribed Cleaning Solution</li>
-                            <li><strong>Verify Cleaning Solution with Staff Nurse ⚠️</strong></li>
-                            <li>Select Dressing Materials</li>
-                            <li><strong>Verify Sterile Dressing Packet with Staff Nurse ⚠️</strong></li>
-                            <li>Arrange Solutions and Materials on Trolley</li>
-                            <li>Bring Prepared Trolley to Patient Area</li>
-                        </ol>
-                    </div>
-                    
+
                     <div class="real-time-feedback-box" id="realtimeFeedback">
                         <strong>Real-Time Feedback:</strong>
                         <p class="text-muted">Perform actions to receive feedback...</p>
                     </div>
-                    
+
                     <div class="actions-grid" id="cleaningAndDressingActions">
-                        <!-- Action buttons will be loaded here -->
+                        <!-- Action buttons loaded dynamically -->
                     </div>
                 </div>
 
-                <!-- Staff Nurse & Verification -->
+                <!-- Staff Nurse Communication -->
                 <div class="card">
-                    <h3>Staff Nurse Communication</h3>
-                    
-                    <div class="info-box">
-                        <strong>🎤 Natural Conversation (Like VR):</strong>
-                        <p>Just talk to the nurse! The system automatically detects if you're asking for:</p>
-                        <ul>
-                            <li><strong>Verification (Actions 5 & 7):</strong> Automatically recorded as actions</li>
-                            <li><strong>Guidance:</strong> General help about the step</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="verification-examples">
-                        <strong>Example messages:</strong>
-                        <ul>
-                            <li><strong>For verification:</strong> "Nurse, can you verify this surgical spirit? It expires March 2026 and the bottle is intact."</li>
-                            <li><strong>For verification:</strong> "Could you check this sterile dressing packet? Expires April 2026, sealed properly."</li>
-                            <li><strong>For guidance:</strong> "What should I do next?"</li>
-                            <li><strong>For guidance:</strong> "How do I arrange the materials on the trolley?"</li>
-                        </ul>
-                    </div>
-                    
+                    <h3>Staff Nurse</h3>
+
                     <div class="staff-nurse-response" id="staffNurseCleaningAndDressing">
-                        <p class="text-muted">Type a message to the staff nurse...</p>
+                        <p class="text-muted">Talk to the staff nurse...</p>
                     </div>
 
                     <div class="voice-controls">
                         <button class="btn btn-record" id="nurseRecordButtonCleaning" onclick="toggleNurseRecording()">
-                            🎤 Record Nurse Question
+                            🎤 Record Message
                         </button>
                         <span class="recording-status" id="nurseRecordingStatusCleaning">Not recording</span>
                     </div>
-                    
+
                     <div class="input-group">
-                        <input 
-                            type="text" 
-                            id="nurseQuestionCleaningAndDressing" 
-                            placeholder="Talk to the nurse (verification or guidance)..."
+                        <input
+                            type="text"
+                            id="nurseQuestionCleaningAndDressing"
+                            placeholder="Talk to the staff nurse..."
                             onkeypress="handleEnter(event, askStaffNurse)"
                         >
                         <button class="btn btn-primary" onclick="askStaffNurse()">
-                            Send to Nurse
+                            Send
                         </button>
                     </div>
                 </div>
@@ -277,7 +249,7 @@
 
             <div class="action-bar">
                 <button class="btn btn-success btn-large" onclick="finishStep('cleaning_and_dressing')">
-                    Finish Preparation Step →
+                    Finish Preparation Step &#8594;
                 </button>
             </div>
         </div>
@@ -286,17 +258,16 @@
         <div class="modal" id="feedbackModal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Step Evaluation</h2>
-                    <button class="close-btn" onclick="closeFeedbackModal()">×</button>
+                    <h2>Step Feedback</h2>
                 </div>
-                
+
                 <div class="modal-body" id="feedbackContent">
-                    <!-- Feedback will be inserted here -->
+                    <!-- Feedback inserted dynamically -->
                 </div>
-                
+
                 <div class="modal-footer">
                     <button class="btn btn-primary btn-large" onclick="continueToNextStep()">
-                        Continue to Next Step →
+                        Continue to Next Step &#8594;
                     </button>
                 </div>
             </div>
@@ -305,13 +276,13 @@
         <!-- Completion Screen -->
         <div class="screen" id="completionScreen" style="display: none;">
             <div class="card completion-card">
-                <h2>🎉 Session Complete!</h2>
+                <h2>&#127881; Session Complete!</h2>
                 <p>Congratulations! You have completed all procedural steps.</p>
-                
+
                 <div class="completion-summary" id="completionSummary">
-                    <!-- Final summary will be shown here -->
+                    <!-- Final summary shown dynamically -->
                 </div>
-                
+
                 <button class="btn btn-primary btn-large" onclick="location.reload()">
                     Start New Session
                 </button>

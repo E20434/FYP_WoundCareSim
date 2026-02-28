@@ -7,7 +7,7 @@ from app.services.evaluation_service import EvaluationService
 from app.core.coordinator import Coordinator
 from app.core.state_machine import Step
 from app.services.action_event_service import ActionEventService
-from app.rag.retriever import retrieve_with_rag
+from app.rag.retriever import retrieve_with_rag, extract_prerequisite_map
 
 from app.agents.patient_agent import PatientAgent
 from app.agents.communication_agent import CommunicationAgent
@@ -79,6 +79,13 @@ class ActionInput(BaseModel):
     session_id: str
     action_type: str
     metadata: Optional[Dict[str, Any]] = None
+
+
+class CompleteStepInput(BaseModel):
+    session_id: str
+    step: Optional[str] = None
+    user_input: Optional[str] = None
+    student_mcq_answers: Optional[Dict[str, Any]] = None
 
 
 # -------------------------------------------------
@@ -305,3 +312,119 @@ async def _handle_verification_as_action(
             "can_proceed": real_time_feedback.get("can_proceed")
         }
     }
+
+
+@router.post("/complete-step")
+async def complete_step(payload: CompleteStepInput):
+    """
+    Complete the current step via REST and advance session state.
+    """
+    session = session_manager.get_session(payload.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    current_step = session.get("current_step")
+    if payload.step and payload.step != current_step:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid step completion request. Current step is '{current_step}'.",
+        )
+
+    response: Dict[str, Any] = {
+        "session_id": payload.session_id,
+        "current_step": current_step,
+    }
+
+    if current_step == Step.HISTORY.value:
+        context = await evaluation_service.prepare_agent_context(
+            session_id=payload.session_id,
+            step=current_step,
+        )
+
+        evaluator_outputs = [
+            await communication_agent.evaluate(
+                current_step=current_step,
+                student_input=context["transcript"],
+                scenario_metadata=context["scenario_metadata"],
+                rag_response=context["rag_context"],
+            ),
+            await knowledge_agent.evaluate(
+                current_step=current_step,
+                student_input=context["transcript"],
+                scenario_metadata=context["scenario_metadata"],
+                rag_response=context["rag_context"],
+            ),
+        ]
+
+        evaluation = await evaluation_service.aggregate_evaluations(
+            session_id=payload.session_id,
+            evaluator_outputs=evaluator_outputs,
+            student_mcq_answers=None,
+            student_message_to_nurse=payload.user_input,
+        )
+
+        conversation_manager.clear_step(payload.session_id, Step.HISTORY.value)
+
+        feedback_payload = {
+            "narrated_feedback": evaluation.get("narrated_feedback"),
+            "score": evaluation.get("scores", {}).get("step_quality_indicator"),
+            "interpretation": evaluation.get("scores", {}).get("interpretation"),
+        }
+        narrated_text = (evaluation.get("narrated_feedback") or {}).get("message_text", "")
+        response["feedback_type"] = "history"
+        response["feedback"] = feedback_payload
+        response["feedback_audio"] = await _safe_tts(narrated_text, role="feedback")
+        session["pending_step_transition_confirmation"] = False
+
+    elif current_step == Step.ASSESSMENT.value:
+        mcq_answers = session.get("mcq_answers", payload.student_mcq_answers or {})
+        evaluation = await evaluation_service.aggregate_evaluations(
+            session_id=payload.session_id,
+            evaluator_outputs=[],
+            student_mcq_answers=mcq_answers,
+            student_message_to_nurse=payload.user_input,
+        )
+
+        mcq_result = evaluation.get("mcq_result")
+        summary_text = None
+        if mcq_result:
+            summary_text = (
+                f"You answered {mcq_result.get('correct_count')} out of "
+                f"{mcq_result.get('total_questions')} questions correctly."
+            )
+
+        response["feedback_type"] = "assessment"
+        response["feedback"] = {
+            "mcq_result": mcq_result,
+            "summary_text": summary_text,
+        }
+        response["feedback_audio"] = await _safe_tts(summary_text or "", role="assessment_feedback")
+        session["mcq_answers"] = {}
+
+    elif current_step == Step.CLEANING_AND_DRESSING.value:
+        session["action_events"] = []
+        session.pop("cached_rag_guidelines", None)
+        session.pop("cached_prerequisite_map", None)
+        response["feedback_type"] = "cleaning_and_dressing"
+        response["feedback"] = None
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Step '{current_step}' cannot be completed.")
+
+    next_step = session_manager.advance_step(payload.session_id)
+    response["next_step"] = next_step
+
+    if next_step == Step.CLEANING_AND_DRESSING.value:
+        rag_result = await retrieve_with_rag(
+            query="wound cleaning and dressing preparation steps sequence prerequisites required actions",
+            scenario_id=session["scenario_id"],
+        )
+        rag_text = rag_result.get("text", "")
+        session["cached_rag_guidelines"] = rag_text
+        session["cached_prerequisite_map"] = await extract_prerequisite_map(
+            rag_text=rag_text,
+            base_agent=clinical_agent,
+        )
+
+    response["session_end"] = next_step == Step.COMPLETED.value
+    return response
