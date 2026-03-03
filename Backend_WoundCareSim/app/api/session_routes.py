@@ -127,6 +127,7 @@ def start_session(payload: StartSessionRequest):
         scenario_id=payload.scenario_id,
         student_id=payload.student_id
     )
+    print(f"\n[STEP START] current_step=history\n")
     return {"session_id": session_id, "session_token": session_manager.get_session(session_id).get("session_token")}
 
 
@@ -427,6 +428,7 @@ async def complete_step(payload: CompleteStepInput):
 
     next_step = session_manager.advance_step(payload.session_id)
     response["next_step"] = next_step
+    print(f"\n[STEP START] current_step={next_step}\n")
 
     if next_step == Step.CLEANING_AND_DRESSING.value:
         rag_result = await retrieve_with_rag(
